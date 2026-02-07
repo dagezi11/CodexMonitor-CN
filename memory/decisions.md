@@ -311,3 +311,10 @@ Type: decision
 Event: App and daemon both needed the same latest-state-safe token persistence behavior after Orbit poll/sign-out.
 Action: Added `update_remote_backend_token_core` in `shared/settings_core.rs` and switched both Orbit adapters to use it instead of cloning stale settings snapshots.
 Rule: Persist Orbit token changes only via shared settings-core mutation helpers to avoid app/daemon divergence and stale overwrite races.
+
+## 2026-02-08 03:15
+Context: i18 branch upstream-sync baseline expectation
+Type: preference
+Event: User clarified this fork should stay as upstream baseline plus Simplified Chinese i18 support for end users.
+Action: Synced upstream Orbit sign-in/runner/settings wiring while resolving conflicts in favor of preserving Chinese localization and uiLanguage support.
+Rule: For i18 branch syncs, prefer upstream feature parity first and keep only the minimal localization delta required for Simplified Chinese UX.
