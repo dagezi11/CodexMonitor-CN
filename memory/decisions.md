@@ -169,3 +169,10 @@ Type: decision
 Event: Direct GitHub installer download and silent installer execution were blocked in current environment.
 Action: Provisioned LLVM from accessible mirror artifact (`clang+llvm-21.1.8-x86_64-pc-windows-msvc.tar.xz`) and extracted it to `E:\CodexMonitorEnv\LLVM` for `libclang`/`clang` availability.
 Rule: When official GitHub release download is unavailable, prefer verified mirror artifacts extracted into `E:\CodexMonitorEnv\LLVM` while preserving the same `LIBCLANG_PATH` contract.
+
+## 2026-02-07 01:15
+Context: Fork updater source and signing-chain migration
+Type: decision
+Event: Switched updater feed from upstream to fork repository and rotated to a fork-owned Tauri signing keypair.
+Action: Updated src-tauri/tauri.conf.json updater endpoint/pubkey, made release workflow derive release artifact URLs from GITHUB_REPOSITORY, and added local signer-key auto-loading in scripts/tauri-build-win-e.ps1 with password fallback file support.
+Rule: For fork releases, keep updater endpoint, release artifact URL generation, and signer keypair ownership aligned to the same repository to avoid signature mismatch update failures.

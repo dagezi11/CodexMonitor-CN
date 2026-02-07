@@ -12,6 +12,9 @@ $LlvmRoot = Join-Path $EnvRoot "LLVM"
 $LlvmBin = Join-Path $LlvmRoot "bin"
 $TempRoot = Join-Path $EnvRoot "tmp"
 $CargoTargetDir = Join-Path $EnvRoot "cargo-target\CodexMonitor-CN"
+$TauriKeyDir = Join-Path $EnvRoot "tauri"
+$TauriPrivateKeyPath = Join-Path $TauriKeyDir "codexmonitor.key"
+$TauriPrivateKeyPasswordPath = Join-Path $TauriKeyDir "codexmonitor.key.password"
 $RustToolchain = "1.89.0-x86_64-pc-windows-msvc"
 $VsDevCmdPath = "D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"
 
@@ -84,6 +87,40 @@ function Set-BuildEnvironment {
   [Environment]::SetEnvironmentVariable("RUSTUP_TOOLCHAIN", $RustToolchain, "Process")
 }
 
+function Ensure-TauriSigningEnvironment {
+  if (-not (Test-Path $TauriPrivateKeyPath)) {
+    $message = @(
+      "Missing Tauri signing private key: $TauriPrivateKeyPath",
+      "Generate one with:",
+      "  npm run tauri -- signer generate -w $TauriPrivateKeyPath",
+      "Then re-run this script."
+    ) -join "`n"
+    throw $message
+  }
+
+  $privateKey = Get-Content -Path $TauriPrivateKeyPath -Raw
+  if (-not $privateKey.Trim()) {
+    throw "Tauri signing private key file is empty: $TauriPrivateKeyPath"
+  }
+
+  [Environment]::SetEnvironmentVariable("TAURI_SIGNING_PRIVATE_KEY", $privateKey, "Process")
+
+  $passwordFromEnv = [Environment]::GetEnvironmentVariable("TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "Process")
+  if (-not [string]::IsNullOrWhiteSpace($passwordFromEnv)) {
+    return
+  }
+
+  if (Test-Path $TauriPrivateKeyPasswordPath) {
+    $passwordFromFile = Get-Content -Path $TauriPrivateKeyPasswordPath -Raw
+    if (-not [string]::IsNullOrWhiteSpace($passwordFromFile)) {
+      [Environment]::SetEnvironmentVariable("TAURI_SIGNING_PRIVATE_KEY_PASSWORD", $passwordFromFile.Trim(), "Process")
+      return
+    }
+  }
+
+  Write-Warning "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is not set. If your key is password-protected, set this env var or create $TauriPrivateKeyPasswordPath."
+}
+
 function Validate-Prerequisites {
   Ensure-Command -Name clang
   Ensure-Command -Name cmake
@@ -110,6 +147,9 @@ try {
 
   Write-Step "Validate prerequisites"
   Validate-Prerequisites
+
+  Write-Step "Load Tauri signing key"
+  Ensure-TauriSigningEnvironment
 
   if ($CheckOnly) {
     Write-Step "Check-only completed successfully"

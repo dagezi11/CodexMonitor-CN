@@ -120,6 +120,11 @@ LLVM expected path:
 - `E:\CodexMonitorEnv\LLVM\bin\clang.exe`
 - `E:\CodexMonitorEnv\LLVM\bin\libclang.dll`
 
+Tauri updater signing key path for this script:
+
+- `E:\CodexMonitorEnv\tauri\codexmonitor.key`
+- Optional password file: `E:\CodexMonitorEnv\tauri\codexmonitor.key.password`
+
 The script also imports MSVC build tools from:
 
 - `D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`
@@ -131,6 +136,54 @@ Run the TypeScript checker (no emit):
 ```bash
 npm run typecheck
 ```
+
+## Fork Updater Signing Setup
+
+If you run a fork and want in-app updates to point to your own release feed, you must use your own Tauri signer keypair.
+
+### 1) Generate keypair (once)
+
+```powershell
+npm run tauri -- signer generate -w E:\CodexMonitorEnv\tauri\codexmonitor.key
+```
+
+This command also writes the public key to:
+
+- `E:\CodexMonitorEnv\tauri\codexmonitor.key.pub`
+
+### 2) Update app updater config
+
+- Copy the `.pub` content into `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
+- Point `plugins.updater.endpoints` to your repository latest feed:
+  - `https://github.com/<your-org-or-user>/<your-repo>/releases/latest/download/latest.json`
+
+### 3) Configure GitHub Actions secrets
+
+The release workflow expects:
+
+- `TAURI_SIGNING_PRIVATE_KEY_B64`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+
+PowerShell example to create the base64 value for `TAURI_SIGNING_PRIVATE_KEY_B64`:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('E:\CodexMonitorEnv\tauri\codexmonitor.key'))
+```
+
+### 4) Local Windows E-drive build usage
+
+`scripts/tauri-build-win-e.ps1` now loads signer secrets automatically:
+
+- Reads private key from `E:\CodexMonitorEnv\tauri\codexmonitor.key`.
+- Password priority:
+  1. `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` process env var
+  2. `E:\CodexMonitorEnv\tauri\codexmonitor.key.password`
+
+If key is missing, script exits with a direct generate command hint.
+
+### Compatibility note
+
+Switching to a new public key breaks updater-chain compatibility with builds signed by the old key. Users may need one manual reinstall to migrate.
 
 Note: `npm run build` also runs `tsc` before bundling the frontend.
 
