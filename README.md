@@ -99,6 +99,31 @@ Artifacts will be in:
  
 Note: building from source on Windows requires LLVM/Clang (for `bindgen` / `libclang`) in addition to CMake.
 
+### Windows E-drive build (project-scoped)
+
+For E-drive scoped build environment (without changing global system variables), this repo provides:
+
+```bash
+npm run doctor:win:e
+npm run tauri:build:win:e
+```
+
+The script uses `E:\CodexMonitorEnv` as build environment root and applies process-level variables only:
+
+- `LIBCLANG_PATH=E:\CodexMonitorEnv\LLVM\bin`
+- `TEMP` / `TMP` => `E:\CodexMonitorEnv\tmp`
+- `CARGO_TARGET_DIR=E:\CodexMonitorEnv\cargo-target\CodexMonitor-CN`
+- `RUSTUP_TOOLCHAIN=1.89.0-x86_64-pc-windows-msvc`
+
+LLVM expected path:
+
+- `E:\CodexMonitorEnv\LLVM\bin\clang.exe`
+- `E:\CodexMonitorEnv\LLVM\bin\libclang.dll`
+
+The script also imports MSVC build tools from:
+
+- `D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`
+
 ## Type Checking
 
 Run the TypeScript checker (no emit):

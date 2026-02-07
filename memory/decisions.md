@@ -148,3 +148,24 @@ Type: decision
 Event: Implemented i18n skeleton with runtime language switching and persistent `uiLanguage` setting across frontend and Rust backend settings model.
 Action: Added `i18next`/`react-i18next` setup, introduced `system/zh-CN/en` preference, applied language in app settings controller, and translated first wave for shell + home + settings display strings.
 Rule: Future UI text changes should use i18n keys first, keep unsupported locales falling back to English, and persist user language preference via `AppSettings.uiLanguage`.
+
+## 2026-02-08 00:13
+Context: Windows E-drive build environment rollout
+Type: preference
+Event: User requested Windows compile environment to live under `E:\CodexMonitorEnv` and take effect via project script, not global system mutation.
+Action: Added project-scoped E-drive Windows build workflow and command entrypoints (`doctor:win:e`, `tauri:build:win:e`) using process-level environment injection.
+Rule: For this repo Windows builds, prefer project script scoped env under `E:\CodexMonitorEnv` over changing global PATH or system variables.
+
+## 2026-02-08 00:13
+Context: Windows rust/whisper compatibility stabilization
+Type: decision
+Event: Validation showed `whisper-rs` currently fails on Windows MSVC with newer Rust toolchains; build flow needs a pinned toolchain in script.
+Action: Pinned Windows E-drive build script to `RUSTUP_TOOLCHAIN=1.89.0-x86_64-pc-windows-msvc` (project-scoped injection) while keeping global default untouched.
+Rule: Keep Windows build toolchain pin explicit in project scripts when upstream `whisper-rs` compatibility is unstable.
+
+## 2026-02-08 00:33
+Context: Windows LLVM provisioning under restricted network
+Type: decision
+Event: Direct GitHub installer download and silent installer execution were blocked in current environment.
+Action: Provisioned LLVM from accessible mirror artifact (`clang+llvm-21.1.8-x86_64-pc-windows-msvc.tar.xz`) and extracted it to `E:\CodexMonitorEnv\LLVM` for `libclang`/`clang` availability.
+Rule: When official GitHub release download is unavailable, prefer verified mirror artifacts extracted into `E:\CodexMonitorEnv\LLVM` while preserving the same `LIBCLANG_PATH` contract.
