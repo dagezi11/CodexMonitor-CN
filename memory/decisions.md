@@ -183,3 +183,9 @@ Type: preference
 Event: User requested configuring both base and recommended secrets scope.
 Action: Configured TAURI_SIGNING_PRIVATE_KEY_B64 and TAURI_SIGNING_PRIVATE_KEY_PASSWORD at repository scope and elease environment scope.
 Rule: For this repo release pipeline, keep Tauri signing secrets synchronized at both repository-level and elease environment-level to avoid workflow scope mismatch.
+## 2026-02-08 02:19
+Context: Repository documentation localization and fork release policy clarity
+Type: preference
+Event: User requested Chinese localization for current project docs and explicit fork release scope in README.
+Action: Translated key repository docs (`README.md`, `REMOTE_BACKEND_POC.md`, `docs/app-server-events.md`, `docs/mobile-ios-cloudflare-blueprint.md`) into Simplified Chinese and added a README section stating this fork publishes Windows-only release artifacts.
+Rule: Keep user-facing docs in Simplified Chinese for this fork and clearly disclose Windows-only release distribution policy in README release notes.
