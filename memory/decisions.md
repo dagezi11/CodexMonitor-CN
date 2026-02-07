@@ -297,3 +297,17 @@ Type: preference
 Event: User explicitly requested preserving the fork's i18n customizations while syncing upstream.
 Action: Resolved merge conflicts by retaining `uiLanguage` settings model support and keeping the Chinese-localized blueprint doc in conflict files.
 Rule: During future upstream syncs on `i18`, preserve localized UX/docs and language setting fields unless user asks to drop i18n.
+
+## 2026-02-07 18:52
+Context: Orbit desktop setup UX and app/daemon dedup
+Type: decision
+Event: Orbit sign-in in Settings previously did not poll using the real device-code contract, and app/daemon each kept local settings parsing helpers.
+Action: Updated Settings sign-in flow to poll `orbit_sign_in_poll` with `deviceCode` until terminal status, added injectable Orbit service client for deterministic tests, and moved Orbit settings/url/token extraction helpers into `shared/orbit_core.rs` for app+daemon reuse.
+Rule: Keep Orbit auth/session behavior contract-driven (typed `deviceCode` flow) and share settings parsing/token helpers in `shared/orbit_core.rs` instead of adapter-local duplicates.
+
+## 2026-02-07 19:39
+Context: Orbit token persistence parity hardening
+Type: decision
+Event: App and daemon both needed the same latest-state-safe token persistence behavior after Orbit poll/sign-out.
+Action: Added `update_remote_backend_token_core` in `shared/settings_core.rs` and switched both Orbit adapters to use it instead of cloning stale settings snapshots.
+Rule: Persist Orbit token changes only via shared settings-core mutation helpers to avoid app/daemon divergence and stale overwrite races.
