@@ -290,3 +290,10 @@ Type: preference
 Event: User requested removing all unreleased Cloudflare fallback/backport compatibility paths and tests.
 Action: Removed provider/url/session legacy compatibility aliases, removed legacy session URL injection logic, and deleted backport-focused tests from remote backend and settings models.
 Rule: For this unreleased Orbit workstream, keep settings and transport strictly canonical without backward-compat adapters.
+
+## 2026-02-08 02:58
+Context: Upstream sync conflict resolution on i18 branch
+Type: preference
+Event: User explicitly requested preserving the fork's i18n customizations while syncing upstream.
+Action: Resolved merge conflicts by retaining `uiLanguage` settings model support and keeping the Chinese-localized blueprint doc in conflict files.
+Rule: During future upstream syncs on `i18`, preserve localized UX/docs and language setting fields unless user asks to drop i18n.
