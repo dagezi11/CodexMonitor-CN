@@ -1,4 +1,4 @@
-# Decisions
+﻿# Decisions
 
 ## Entry Template
 
@@ -181,11 +181,112 @@ Rule: For fork releases, keep updater endpoint, release artifact URL generation,
 Context: GitHub release signing secrets bootstrap for fork updater
 Type: preference
 Event: User requested configuring both base and recommended secrets scope.
-Action: Configured TAURI_SIGNING_PRIVATE_KEY_B64 and TAURI_SIGNING_PRIVATE_KEY_PASSWORD at repository scope and elease environment scope.
-Rule: For this repo release pipeline, keep Tauri signing secrets synchronized at both repository-level and elease environment-level to avoid workflow scope mismatch.
+Action: Configured TAURI_SIGNING_PRIVATE_KEY_B64 and TAURI_SIGNING_PRIVATE_KEY_PASSWORD at repository scope and 
+elease environment scope.
+Rule: For this repo release pipeline, keep Tauri signing secrets synchronized at both repository-level and 
+elease environment-level to avoid workflow scope mismatch.
+
 ## 2026-02-08 02:19
 Context: Repository documentation localization and fork release policy clarity
 Type: preference
 Event: User requested Chinese localization for current project docs and explicit fork release scope in README.
 Action: Translated key repository docs (`README.md`, `REMOTE_BACKEND_POC.md`, `docs/app-server-events.md`, `docs/mobile-ios-cloudflare-blueprint.md`) into Simplified Chinese and added a README section stating this fork publishes Windows-only release artifacts.
 Rule: Keep user-facing docs in Simplified Chinese for this fork and clearly disclose Windows-only release distribution policy in README release notes.
+
+## 2026-02-07 15:11
+Context: Mobile UI scope confirmation
+Type: preference
+Event: User confirmed iOS should reuse the current app layout's mobile variant instead of introducing a separate mobile-only UI surface.
+Action: Treat mobile work as backend/connectivity enablement for existing mobile-responsive UI flows.
+Rule: For iOS rollout, prioritize backend/transport parity for existing UI flows before designing net-new mobile-specific screens.
+
+## 2026-02-07 15:26
+Context: App/daemon parity refactor quality bar
+Type: preference
+Event: User requested parity work avoid repeated logical code between app and daemon, with shared implementations as the default.
+Action: Current in-progress daemon parity changes must be completed by extracting/using shared core helpers instead of duplicating logic in daemon-specific functions.
+Rule: For app/daemon parity, keep domain logic in shared modules and restrict app/daemon code to thin adapters.
+
+## 2026-02-07 15:42
+Context: Daemon parity implementation scope for mobile wiring
+Type: preference
+Event: User explicitly excluded terminal and dictation from current mobile/remote parity work.
+Action: Implemented daemon RPC parity for non-terminal/non-dictation methods and validated parity gap now contains only `terminal_*` and `dictation_*` commands.
+Rule: For current mobile remote-mode rollout, treat terminal and dictation RPC parity as out of scope unless the user re-enables them.
+
+## 2026-02-07 16:58
+Context: App/daemon parity dedup for mobile remote-mode backend
+Type: decision
+Event: Refactored duplicated prompt/local-usage/codex-utility/git logic into shared core modules and switched app/daemon code to adapter-only wrappers.
+Action: Added `shared/prompts_core.rs`, `shared/local_usage_core.rs`, `shared/codex_aux_core.rs`, and `shared/git_ui_core.rs`; rewired `prompts.rs`, `local_usage.rs`, `git/mod.rs`, `codex/mod.rs`, and daemon method handlers to call shared functions.
+Rule: Keep user-facing git/prompt/local-usage/codex utility behavior in shared cores and keep app/daemon files limited to transport/wiring responsibilities.
+
+## 2026-02-07 17:22
+Context: Remaining workspace-action parity dedup
+Type: decision
+Event: `add_clone`, `apply_worktree_changes`, `open_workspace_in`, and `get_open_app_icon` still duplicated between app and daemon after first parity refactor pass.
+Action: Moved those behaviors into `shared/workspaces_core.rs` (`add_clone_core`, `apply_worktree_changes_core`, `open_workspace_in_core`, `get_open_app_icon_core`) and rewired both app (`workspaces/commands.rs`) and daemon (`codex_monitor_daemon.rs`) to thin adapters.
+Rule: Keep workspace action behavior shared-first; app and daemon should only pass environment dependencies and transport payloads.
+
+## 2026-02-07 17:26
+Context: Backend test-target dead code warnings
+Type: decision
+Event: `cargo test` warnings came from a truly unused test hook and a test helper compiled in targets that do not reference it.
+Action: Removed unused `set_window_appearance_override` from `window.rs`; added `#[allow(dead_code)]` to `workspaces/settings.rs::sort_workspaces` (test-only helper used in lib tests but not daemon test target).
+Rule: Remove genuinely unused test hooks; for cross-target test helpers, use narrow `#[allow(dead_code)]` instead of broad warning suppression.
+
+## 2026-02-07 17:32
+Context: Mobile parity verification policy
+Type: preference
+Event: User explicitly requested no CI parity guard for this phase and to rely on local validation.
+Action: Updated mobile Cloudflare blueprint to remove CI parity guard requirements and require local parity validation only.
+Rule: For current mobile/remote scope, do not add CI parity guardrails unless user requests them again.
+
+## 2026-02-07 17:47
+Context: Mobile remote bridge provider finalization
+Type: preference
+Event: User selected Orbit-only path for mobile remote architecture and requested canonical plan updates away from custom Cloudflare bridge implementation.
+Action: Rewrote `docs/mobile-ios-cloudflare-blueprint.md` to Orbit-only architecture, setup flows, settings model, transport refactor, and implementation milestones; removed custom Worker/DO protocol/envelope sections.
+Rule: For current mobile rollout, plan and implementation should target Orbit integration only (hosted and self-host modes), not a custom bridge protocol/service.
+
+## 2026-02-07 17:39
+Context: Daemon parity hardening follow-up
+Type: decision
+Event: Added daemon-side RPC parity coverage for recently extracted workspace/prompts/local-usage adapters and improved open-app failure diagnostics.
+Action: Added RPC tests in `src-tauri/src/bin/codex_monitor_daemon.rs` for `add_clone`, `prompts_list`, and `local_usage_snapshot` routing; updated `open_workspace_in_core` in `src-tauri/src/shared/workspaces_core.rs` to include bounded stdout/stderr snippets in non-zero exit errors.
+Rule: Keep daemon adapter parity guarded by RPC-level tests for representative workspace/prompts/local-usage methods, and preserve process-output context in open-app failure errors.
+
+## 2026-02-07 17:52
+Context: Remote backend transport abstraction for mobile bridge prep
+Type: decision
+Event: Remote backend was a single TCP-specific module with no transport-level provider split.
+Action: Refactored `src-tauri/src/remote_backend.rs` into `remote_backend/{mod,protocol,transport,tcp_transport,cloudflare_ws_transport}.rs`, added `remoteBackendProvider` + Cloudflare settings fields, kept TCP behavior as default, and added a Cloudflare transport stub that returns a clear not-implemented error.
+Rule: Keep remote transport wiring behind `RemoteTransport` and use provider selection in settings so new bridge transports can be added without touching command callsites.
+
+## 2026-02-07 17:58
+Context: Cloudflare transport implementation pass
+Type: decision
+Event: Cloudflare transport stub blocked real remote bridge connectivity testing.
+Action: Implemented `cloudflare_ws_transport` with real WebSocket connect/read/write loops via `tokio-tungstenite`, shared incoming dispatch/pending-response handling, URL normalization to `/ws/{sessionId}`, and transport-level disconnect propagation.
+Rule: New remote transports should reuse shared dispatch/disconnect helpers and preserve the same request/response semantics as TCP transport.
+
+## 2026-02-07 18:00
+Context: Mobile Cloudflare blueprint canonicalization
+Type: decision
+Event: Blueprint still referenced pre-refactor remote backend structure and outdated settings keys after transport work landed.
+Action: Updated `docs/mobile-ios-cloudflare-blueprint.md` to reflect implemented remote backend module split, Cloudflare WS transport status, current provider settings fields, and remaining reconnect/replay hardening work.
+Rule: Keep blueprint "Current State" and backend/settings sections synchronized with merged transport architecture before starting new milestone work.
+
+## 2026-02-07 18:09
+Context: Orbit-only provider canonicalization
+Type: decision
+Event: Backend/provider/settings naming still reflected Cloudflare-specific labels after Orbit-only direction was finalized.
+Action: Renamed remote transport/provider/settings model to Orbit (`orbit_ws_transport`, `RemoteBackendProvider::Orbit`, `orbit*` settings), retained serde aliases for legacy Cloudflare config keys, and updated the mobile blueprint/todo notes to Orbit-first language.
+Rule: Keep runtime/provider naming Orbit-first while preserving narrow backward-compatible aliases only for persisted legacy settings.
+
+## 2026-02-07 18:13
+Context: Orbit-only feature branch compatibility policy
+Type: preference
+Event: User requested removing all unreleased Cloudflare fallback/backport compatibility paths and tests.
+Action: Removed provider/url/session legacy compatibility aliases, removed legacy session URL injection logic, and deleted backport-focused tests from remote backend and settings models.
+Rule: For this unreleased Orbit workstream, keep settings and transport strictly canonical without backward-compat adapters.
