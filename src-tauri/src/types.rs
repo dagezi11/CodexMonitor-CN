@@ -414,6 +414,8 @@ pub(crate) struct AppSettings {
     pub(crate) ui_scale: f64,
     #[serde(default = "default_theme", rename = "theme")]
     pub(crate) theme: String,
+    #[serde(default = "default_ui_language", rename = "uiLanguage")]
+    pub(crate) ui_language: String,
     #[serde(default = "default_usage_show_remaining", rename = "usageShowRemaining")]
     pub(crate) usage_show_remaining: bool,
     #[serde(default = "default_ui_font_family", rename = "uiFontFamily")]
@@ -549,6 +551,10 @@ fn default_theme() -> String {
 
 fn default_usage_show_remaining() -> bool {
     false
+}
+
+fn default_ui_language() -> String {
+    "system".to_string()
 }
 
 fn default_ui_font_family() -> String {
@@ -950,6 +956,7 @@ impl Default for AppSettings {
             last_composer_reasoning_effort: None,
             ui_scale: 1.0,
             theme: default_theme(),
+            ui_language: default_ui_language(),
             usage_show_remaining: default_usage_show_remaining(),
             ui_font_family: default_ui_font_family(),
             code_font_family: default_code_font_family(),
@@ -1079,6 +1086,7 @@ mod tests {
         assert!(settings.last_composer_reasoning_effort.is_none());
         assert!((settings.ui_scale - 1.0).abs() < f64::EPSILON);
         assert_eq!(settings.theme, "system");
+        assert_eq!(settings.ui_language, "system");
         assert!(!settings.usage_show_remaining);
         assert!(settings.ui_font_family.contains("system-ui"));
         assert!(settings.code_font_family.contains("ui-monospace"));

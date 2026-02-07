@@ -141,3 +141,10 @@ Type: preference
 Event: User explicitly requested to ignore PR #31 and CloudKit for mobile architecture planning.
 Action: Canonical mobile plan now targets Cloudflare bridge only, with no dependency on CloudKit or PR #31 implementation details.
 Rule: Do not propose CloudKit/PR31-based mobile backend patterns unless user re-requests them.
+
+## 2026-02-07 22:35
+Context: Frontend i18n scaffold and language setting
+Type: decision
+Event: Implemented i18n skeleton with runtime language switching and persistent `uiLanguage` setting across frontend and Rust backend settings model.
+Action: Added `i18next`/`react-i18next` setup, introduced `system/zh-CN/en` preference, applied language in app settings controller, and translated first wave for shell + home + settings display strings.
+Rule: Future UI text changes should use i18n keys first, keep unsupported locales falling back to English, and persist user language preference via `AppSettings.uiLanguage`.

@@ -125,7 +125,7 @@ src-tauri/
 ## Notes
 
 - Workspaces persist to `workspaces.json` under the app data directory.
-- App settings persist to `settings.json` under the app data directory (Codex path, default access mode, UI scale).
+- App settings persist to `settings.json` under the app data directory (Codex path, default access mode, UI scale, UI language preference).
 - Feature settings are supported in the UI and synced to `$CODEX_HOME/config.toml` (or `~/.codex/config.toml`) on load/save. Stable: Collaboration modes (`features.collaboration_modes`), personality (`personality`), Steer mode (`features.steer`), and Background terminal (`features.unified_exec`). Experimental: Collab mode (`features.collab`) and Apps (`features.apps`).
 - On launch and on window focus, the app reconnects and refreshes thread lists for each workspace.
 - Threads are restored by filtering `thread/list` results using the workspace `cwd`.
@@ -135,6 +135,7 @@ src-tauri/
 - Codex sessions use the default Codex home (usually `~/.codex`); if a legacy `.codexmonitor/` exists in a workspace, it is used for that workspace.
 - Worktree agents live under the app data directory (`worktrees/<workspace-id>`); legacy `.codex-worktrees/` paths remain supported, and the app no longer edits repo `.gitignore` files.
 - UI state (panel sizes, reduced transparency toggle, recent thread activity) is stored in `localStorage`.
+- UI language supports `System` / `简体中文` / `English` in Settings → Display & Sound. Current i18n coverage is core shell + Home + Settings entry/display strings; non-covered strings fall back to English.
 - Custom prompts load from `$CODEX_HOME/prompts` (or `~/.codex/prompts`) with optional frontmatter description/argument hints.
 
 ## Tauri IPC Surface
@@ -145,3 +146,4 @@ Frontend calls live in `src/services/tauri.ts` and map to commands in `src-tauri
 - Threads: `start_thread`, `list_threads`, `resume_thread`, `archive_thread`, `send_user_message`, `turn_interrupt`, `respond_to_server_request`.
 - Reviews + models: `start_review`, `model_list`, `account_rate_limits`, `skills_list`.
 - Git + files: `get_git_status`, `get_git_diffs`, `get_git_log`, `get_git_remote`, `list_git_branches`, `checkout_git_branch`, `create_git_branch`, `list_workspace_files`.
+ 

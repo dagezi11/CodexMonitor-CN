@@ -10,6 +10,7 @@ import {
   PopoverSurface,
 } from "../../design-system/components/popover/PopoverPrimitives";
 import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type SidebarHeaderProps = {
   onSelectHome: () => void;
@@ -28,6 +29,7 @@ export function SidebarHeader({
   threadListSortKey,
   onSetThreadListSortKey,
 }: SidebarHeaderProps) {
+  const { t } = useAppTranslation("shell");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,7 +55,7 @@ export function SidebarHeader({
             className="sidebar-title-add"
             onClick={onAddWorkspace}
             data-tauri-drag-region="false"
-            aria-label="Add workspace"
+            aria-label={t("sidebar.addWorkspace")}
             type="button"
           >
             <FolderPlus aria-hidden />
@@ -62,9 +64,9 @@ export function SidebarHeader({
             className="subtitle subtitle-button sidebar-title-button"
             onClick={onSelectHome}
             data-tauri-drag-region="false"
-            aria-label="Open home"
+            aria-label={t("sidebar.openHome")}
           >
-            Projects
+            {t("tabs.projects")}
           </button>
         </div>
       </div>
@@ -74,11 +76,11 @@ export function SidebarHeader({
             className={`ghost sidebar-sort-toggle${sortMenuOpen ? " is-active" : ""}`}
             onClick={() => setSortMenuOpen((open) => !open)}
             data-tauri-drag-region="false"
-            aria-label="Sort threads"
+            aria-label={t("sidebar.sortThreads")}
             aria-haspopup="menu"
             aria-expanded={sortMenuOpen}
             type="button"
-            title="Sort threads"
+            title={t("sidebar.sortThreads")}
           >
             <ListFilter aria-hidden />
           </button>
@@ -93,7 +95,7 @@ export function SidebarHeader({
                 icon={<Clock3 aria-hidden />}
                 active={threadListSortKey === "updated_at"}
               >
-                Last updated
+                {t("sidebar.sortLastUpdated")}
               </PopoverMenuItem>
               <PopoverMenuItem
                 className="sidebar-sort-option"
@@ -104,7 +106,7 @@ export function SidebarHeader({
                 icon={<Calendar aria-hidden />}
                 active={threadListSortKey === "created_at"}
               >
-                Most recent
+                {t("sidebar.sortMostRecent")}
               </PopoverMenuItem>
             </PopoverSurface>
           )}
@@ -113,7 +115,7 @@ export function SidebarHeader({
           className={`ghost sidebar-search-toggle${isSearchOpen ? " is-active" : ""}`}
           onClick={onToggleSearch}
           data-tauri-drag-region="false"
-          aria-label="Toggle search"
+          aria-label={t("sidebar.toggleSearch")}
           aria-pressed={isSearchOpen}
           type="button"
         >

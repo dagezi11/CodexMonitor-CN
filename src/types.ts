@@ -117,6 +117,7 @@ export type AccessMode = "read-only" | "current" | "full-access";
 export type BackendMode = "local" | "remote";
 export type ThemePreference = "system" | "light" | "dark" | "dim";
 export type PersonalityPreference = "friendly" | "pragmatic";
+export type AppLanguagePreference = "system" | "zh-CN" | "en";
 
 
 export type ComposerEditorPreset = "default" | "helpful" | "smart";
@@ -171,6 +172,7 @@ export type AppSettings = {
   lastComposerReasoningEffort: string | null;
   uiScale: number;
   theme: ThemePreference;
+  uiLanguage: AppLanguagePreference;
   usageShowRemaining: boolean;
   uiFontFamily: string;
   codeFontFamily: string;

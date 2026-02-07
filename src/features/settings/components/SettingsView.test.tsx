@@ -68,6 +68,7 @@ const baseSettings: AppSettings = {
   dictationModelId: "base",
   dictationPreferredLanguage: null,
   dictationHoldKey: null,
+  uiLanguage: "system",
   composerEditorPreset: "default",
   composerFenceExpandOnSpace: false,
   composerFenceExpandOnEnter: false,
@@ -296,6 +297,20 @@ describe("SettingsView Display", () => {
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
         expect.objectContaining({ theme: "dark" }),
+      );
+    });
+  });
+
+  it("updates display language selection", async () => {
+    const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
+    renderDisplaySection({ onUpdateAppSettings });
+
+    const select = screen.getByLabelText("Language");
+    fireEvent.change(select, { target: { value: "zh-CN" } });
+
+    await waitFor(() => {
+      expect(onUpdateAppSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ uiLanguage: "zh-CN" }),
       );
     });
   });

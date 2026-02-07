@@ -55,6 +55,7 @@ import { useGlobalAgentsMd } from "../hooks/useGlobalAgentsMd";
 import { useGlobalCodexConfigToml } from "../hooks/useGlobalCodexConfigToml";
 import { ModalShell } from "../../design-system/components/modal/ModalShell";
 import { FileEditorCard } from "../../shared/components/FileEditorCard";
+import { useAppTranslation } from "../../i18n/i18n";
 
 const DICTATION_MODELS = [
   { id: "tiny", label: "Tiny", size: "75 MB", note: "Fastest, least accurate." },
@@ -329,6 +330,7 @@ export function SettingsView({
   onRemoveDictationModel,
   initialSection,
 }: SettingsViewProps) {
+  const { t } = useAppTranslation("settings");
   const [activeSection, setActiveSection] = useState<CodexSection>("projects");
   const [environmentWorkspaceId, setEnvironmentWorkspaceId] = useState<string | null>(
     null,
@@ -1147,13 +1149,13 @@ export function SettingsView({
     >
       <div className="settings-titlebar">
         <div className="settings-title" id="settings-modal-title">
-          Settings
+          {t("title")}
         </div>
         <button
           type="button"
           className="ghost icon-button settings-close"
           onClick={onClose}
-          aria-label="Close settings"
+          aria-label={t("closeSettings")}
         >
           <X aria-hidden />
         </button>
@@ -1166,7 +1168,7 @@ export function SettingsView({
               onClick={() => setActiveSection("projects")}
             >
               <LayoutGrid aria-hidden />
-              Projects
+              {t("nav.projects")}
             </button>
             <button
               type="button"
@@ -1174,7 +1176,7 @@ export function SettingsView({
               onClick={() => setActiveSection("environments")}
             >
               <Layers aria-hidden />
-              Environments
+              {t("nav.environments")}
             </button>
             <button
               type="button"
@@ -1182,7 +1184,7 @@ export function SettingsView({
               onClick={() => setActiveSection("display")}
             >
               <SlidersHorizontal aria-hidden />
-              Display &amp; Sound
+              {t("nav.display")}
             </button>
             <button
               type="button"
@@ -1190,7 +1192,7 @@ export function SettingsView({
               onClick={() => setActiveSection("composer")}
             >
               <FileText aria-hidden />
-              Composer
+              {t("nav.composer")}
             </button>
             <button
               type="button"
@@ -1198,7 +1200,7 @@ export function SettingsView({
               onClick={() => setActiveSection("dictation")}
             >
               <Mic aria-hidden />
-              Dictation
+              {t("nav.dictation")}
             </button>
             <button
               type="button"
@@ -1206,7 +1208,7 @@ export function SettingsView({
               onClick={() => setActiveSection("shortcuts")}
             >
               <Keyboard aria-hidden />
-              Shortcuts
+              {t("nav.shortcuts")}
             </button>
             <button
               type="button"
@@ -1214,7 +1216,7 @@ export function SettingsView({
               onClick={() => setActiveSection("open-apps")}
             >
               <ExternalLink aria-hidden />
-              Open in
+              {t("nav.openIn")}
             </button>
             <button
               type="button"
@@ -1222,7 +1224,7 @@ export function SettingsView({
               onClick={() => setActiveSection("git")}
             >
               <GitBranch aria-hidden />
-              Git
+              {t("nav.git")}
             </button>
             <button
               type="button"
@@ -1230,7 +1232,7 @@ export function SettingsView({
               onClick={() => setActiveSection("codex")}
             >
               <TerminalSquare aria-hidden />
-              Codex
+              {t("nav.codex")}
             </button>
             <button
               type="button"
@@ -1238,7 +1240,7 @@ export function SettingsView({
               onClick={() => setActiveSection("features")}
             >
               <FlaskConical aria-hidden />
-              Features
+              {t("nav.features")}
             </button>
           </aside>
           <div className="settings-content">
@@ -1561,17 +1563,17 @@ export function SettingsView({
             )}
             {activeSection === "display" && (
               <section className="settings-section">
-                <div className="settings-section-title">Display &amp; Sound</div>
+                <div className="settings-section-title">{t("display.title")}</div>
                 <div className="settings-section-subtitle">
-                  Tune visuals and audio alerts to your preferences.
+                  {t("display.subtitle")}
                 </div>
-                <div className="settings-subsection-title">Display</div>
+                <div className="settings-subsection-title">{t("display.sectionDisplay")}</div>
                 <div className="settings-subsection-subtitle">
-                  Adjust how the window renders backgrounds and effects.
+                  {t("display.sectionDisplaySubtitle")}
                 </div>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="theme-select">
-                    Theme
+                    {t("display.theme")}
                   </label>
                   <select
                     id="theme-select"
@@ -1584,19 +1586,40 @@ export function SettingsView({
                       })
                     }
                   >
-                    <option value="system">System</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="dim">Dim</option>
+                    <option value="system">{t("display.themeSystem")}</option>
+                    <option value="light">{t("display.themeLight")}</option>
+                    <option value="dark">{t("display.themeDark")}</option>
+                    <option value="dim">{t("display.themeDim")}</option>
                   </select>
+                </div>
+                <div className="settings-field">
+                  <label className="settings-field-label" htmlFor="ui-language-select">
+                    {t("display.language")}
+                  </label>
+                  <select
+                    id="ui-language-select"
+                    className="settings-select"
+                    value={appSettings.uiLanguage}
+                    onChange={(event) =>
+                      void onUpdateAppSettings({
+                        ...appSettings,
+                        uiLanguage: event.target.value as AppSettings["uiLanguage"],
+                      })
+                    }
+                  >
+                    <option value="system">{t("display.langSystem")}</option>
+                    <option value="zh-CN">{t("display.langZhCN")}</option>
+                    <option value="en">{t("display.langEn")}</option>
+                  </select>
+                  <div className="settings-help">{t("display.languageHelp")}</div>
                 </div>
                 <div className="settings-toggle-row">
                   <div>
                     <div className="settings-toggle-title">
-                      Show remaining Codex limits
+                      {t("display.showRemainingTitle")}
                     </div>
                     <div className="settings-toggle-subtitle">
-                      Display what is left instead of what is used.
+                      {t("display.showRemainingSubtitle")}
                     </div>
                   </div>
                   <button
@@ -1617,9 +1640,9 @@ export function SettingsView({
                 </div>
                 <div className="settings-toggle-row">
                   <div>
-                    <div className="settings-toggle-title">Reduce transparency</div>
+                    <div className="settings-toggle-title">{t("display.reduceTransparencyTitle")}</div>
                     <div className="settings-toggle-subtitle">
-                      Use solid surfaces instead of glass.
+                      {t("display.reduceTransparencySubtitle")}
                     </div>
                   </div>
                   <button
@@ -1633,7 +1656,7 @@ export function SettingsView({
                 </div>
                 <div className="settings-toggle-row settings-scale-row">
                   <div>
-                    <div className="settings-toggle-title">Interface scale</div>
+                    <div className="settings-toggle-title">{t("display.interfaceScale")}</div>
                     <div
                       className="settings-toggle-subtitle"
                       title={scaleShortcutTitle}
@@ -1667,13 +1690,13 @@ export function SettingsView({
                         void handleResetScale();
                       }}
                     >
-                      Reset
+                      {t("display.reset")}
                     </button>
                   </div>
                 </div>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="ui-font-family">
-                    UI font family
+                    {t("display.uiFontFamily")}
                   </label>
                   <div className="settings-field-row">
                     <input
@@ -1703,16 +1726,16 @@ export function SettingsView({
                         });
                       }}
                     >
-                      Reset
+                      {t("display.reset")}
                     </button>
                   </div>
                   <div className="settings-help">
-                    Applies to all UI text. Leave empty to use the default system font stack.
+                    {t("display.uiFontFamilyHelp")}
                   </div>
                 </div>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="code-font-family">
-                    Code font family
+                    {t("display.codeFontFamily")}
                   </label>
                   <div className="settings-field-row">
                     <input
@@ -1742,16 +1765,16 @@ export function SettingsView({
                         });
                       }}
                     >
-                      Reset
+                      {t("display.reset")}
                     </button>
                   </div>
                   <div className="settings-help">
-                    Applies to git diffs and other mono-spaced readouts.
+                    {t("display.codeFontFamilyHelp")}
                   </div>
                 </div>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="code-font-size">
-                    Code font size
+                    {t("display.codeFontSize")}
                   </label>
                   <div className="settings-field-row">
                     <input
@@ -1777,22 +1800,22 @@ export function SettingsView({
                         void handleCommitCodeFontSize(CODE_FONT_SIZE_DEFAULT);
                       }}
                     >
-                      Reset
+                      {t("display.reset")}
                     </button>
                   </div>
                   <div className="settings-help">
-                    Adjusts code and diff text size.
+                    {t("display.codeFontSizeHelp")}
                   </div>
                 </div>
-                <div className="settings-subsection-title">Sounds</div>
+                <div className="settings-subsection-title">{t("display.sounds")}</div>
                 <div className="settings-subsection-subtitle">
-                  Control notification audio alerts.
+                  {t("display.soundsSubtitle")}
                 </div>
                 <div className="settings-toggle-row">
                   <div>
-                    <div className="settings-toggle-title">Notification sounds</div>
+                    <div className="settings-toggle-title">{t("display.notificationSoundsTitle")}</div>
                     <div className="settings-toggle-subtitle">
-                      Play a sound when a long-running agent finishes while the window is unfocused.
+                      {t("display.notificationSoundsSubtitle")}
                     </div>
                   </div>
                   <button
@@ -1811,9 +1834,9 @@ export function SettingsView({
                 </div>
                 <div className="settings-toggle-row">
                   <div>
-                    <div className="settings-toggle-title">System notifications</div>
+                    <div className="settings-toggle-title">{t("display.systemNotificationsTitle")}</div>
                     <div className="settings-toggle-subtitle">
-                      Show a system notification when a long-running agent finishes while the window is unfocused.
+                      {t("display.systemNotificationsSubtitle")}
                     </div>
                   </div>
                   <button
@@ -1836,14 +1859,14 @@ export function SettingsView({
                     className="ghost settings-button-compact"
                     onClick={onTestNotificationSound}
                   >
-                    Test sound
+                    {t("display.testSound")}
                   </button>
                   <button
                     type="button"
                     className="ghost settings-button-compact"
                     onClick={onTestSystemNotification}
                   >
-                    Test notification
+                    {t("display.testNotification")}
                   </button>
                 </div>
               </section>

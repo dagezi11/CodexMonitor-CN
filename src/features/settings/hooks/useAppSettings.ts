@@ -16,9 +16,11 @@ import {
 } from "../../app/constants";
 import { normalizeOpenAppTargets } from "../../app/utils/openApp";
 import { getDefaultInterruptShortcut, isMacPlatform } from "../../../utils/shortcuts";
+import type { AppLanguagePreference } from "../../../types";
 
 const allowedThemes = new Set(["system", "light", "dark", "dim"]);
 const allowedPersonality = new Set(["friendly", "pragmatic"]);
+const allowedLanguages = new Set<AppLanguagePreference>(["system", "zh-CN", "en"]);
 
 function buildDefaultSettings(): AppSettings {
   const isMac = isMacPlatform();
@@ -52,6 +54,7 @@ function buildDefaultSettings(): AppSettings {
     lastComposerReasoningEffort: null,
     uiScale: UI_SCALE_DEFAULT,
     theme: "system",
+    uiLanguage: "system",
     usageShowRemaining: false,
     uiFontFamily: DEFAULT_UI_FONT_FAMILY,
     codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
@@ -112,6 +115,9 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     codexArgs: settings.codexArgs?.trim() ? settings.codexArgs.trim() : null,
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
+    uiLanguage: allowedLanguages.has(settings.uiLanguage)
+      ? settings.uiLanguage
+      : "system",
     uiFontFamily: normalizeFontFamily(
       settings.uiFontFamily,
       DEFAULT_UI_FONT_FAMILY,
