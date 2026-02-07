@@ -1,3 +1,4 @@
+正在汉化中,才刚fork
 # CodexMonitor
 
 ![CodexMonitor](screenshot.png)
