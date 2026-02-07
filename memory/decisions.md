@@ -176,3 +176,10 @@ Type: decision
 Event: Switched updater feed from upstream to fork repository and rotated to a fork-owned Tauri signing keypair.
 Action: Updated src-tauri/tauri.conf.json updater endpoint/pubkey, made release workflow derive release artifact URLs from GITHUB_REPOSITORY, and added local signer-key auto-loading in scripts/tauri-build-win-e.ps1 with password fallback file support.
 Rule: For fork releases, keep updater endpoint, release artifact URL generation, and signer keypair ownership aligned to the same repository to avoid signature mismatch update failures.
+
+## 2026-02-08 02:03
+Context: GitHub release signing secrets bootstrap for fork updater
+Type: preference
+Event: User requested configuring both base and recommended secrets scope.
+Action: Configured TAURI_SIGNING_PRIVATE_KEY_B64 and TAURI_SIGNING_PRIVATE_KEY_PASSWORD at repository scope and elease environment scope.
+Rule: For this repo release pipeline, keep Tauri signing secrets synchronized at both repository-level and elease environment-level to avoid workflow scope mismatch.
