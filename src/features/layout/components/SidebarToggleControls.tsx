@@ -2,6 +2,7 @@ import PanelLeftClose from "lucide-react/dist/esm/icons/panel-left-close";
 import PanelLeftOpen from "lucide-react/dist/esm/icons/panel-left-open";
 import PanelRightClose from "lucide-react/dist/esm/icons/panel-right-close";
 import PanelRightOpen from "lucide-react/dist/esm/icons/panel-right-open";
+import { useAppTranslation } from "../../i18n/i18n";
 
 export type SidebarToggleProps = {
   isCompact: boolean;
@@ -18,6 +19,7 @@ export function SidebarCollapseButton({
   sidebarCollapsed,
   onCollapseSidebar,
 }: SidebarToggleProps) {
+  const { t } = useAppTranslation("common");
   if (isCompact || sidebarCollapsed) {
     return null;
   }
@@ -27,8 +29,8 @@ export function SidebarCollapseButton({
       className="ghost main-header-action"
       onClick={onCollapseSidebar}
       data-tauri-drag-region="false"
-      aria-label="Hide threads sidebar"
-      title="Hide threads sidebar"
+      aria-label={t("layout.hideThreadsSidebar")}
+      title={t("layout.hideThreadsSidebar")}
     >
       <PanelLeftClose size={14} aria-hidden />
     </button>
@@ -40,6 +42,7 @@ export function RightPanelCollapseButton({
   rightPanelCollapsed,
   onCollapseRightPanel,
 }: SidebarToggleProps) {
+  const { t } = useAppTranslation("common");
   if (isCompact || rightPanelCollapsed) {
     return null;
   }
@@ -49,8 +52,8 @@ export function RightPanelCollapseButton({
       className="ghost main-header-action"
       onClick={onCollapseRightPanel}
       data-tauri-drag-region="false"
-      aria-label="Hide git sidebar"
-      title="Hide git sidebar"
+      aria-label={t("layout.hideGitSidebar")}
+      title={t("layout.hideGitSidebar")}
     >
       <PanelRightClose size={14} aria-hidden />
     </button>
@@ -64,6 +67,7 @@ export function TitlebarExpandControls({
   onExpandSidebar,
   onExpandRightPanel,
 }: SidebarToggleProps) {
+  const { t } = useAppTranslation("common");
   if (isCompact || (!sidebarCollapsed && !rightPanelCollapsed)) {
     return null;
   }
@@ -76,8 +80,8 @@ export function TitlebarExpandControls({
             className="ghost main-header-action"
             onClick={onExpandSidebar}
             data-tauri-drag-region="false"
-            aria-label="Show threads sidebar"
-            title="Show threads sidebar"
+            aria-label={t("layout.showThreadsSidebar")}
+            title={t("layout.showThreadsSidebar")}
           >
             <PanelLeftOpen size={14} aria-hidden />
           </button>
@@ -90,8 +94,8 @@ export function TitlebarExpandControls({
             className="ghost main-header-action"
             onClick={onExpandRightPanel}
             data-tauri-drag-region="false"
-            aria-label="Show git sidebar"
-            title="Show git sidebar"
+            aria-label={t("layout.showGitSidebar")}
+            title={t("layout.showGitSidebar")}
           >
             <PanelRightOpen size={14} aria-hidden />
           </button>

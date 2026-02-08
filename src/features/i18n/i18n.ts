@@ -1,10 +1,11 @@
 import i18n from "i18next";
 import { initReactI18next, useTranslation } from "react-i18next";
 import type { AppLanguagePreference } from "../../types";
+import { commonTranslations } from "./commonTranslations";
 
 const resources = {
   en: {
-    common: {},
+    common: commonTranslations.en,
     shell: {
       tabs: {
         projects: "Projects",
@@ -167,7 +168,7 @@ const resources = {
     },
   },
   "zh-CN": {
-    common: {},
+    common: commonTranslations["zh-CN"],
     shell: {
       tabs: {
         projects: "项目",

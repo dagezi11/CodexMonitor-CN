@@ -6,6 +6,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "../../design-system/components/toast/ToastPrimitives";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type ErrorToastsProps = {
   toasts: ErrorToast[];
@@ -13,6 +14,7 @@ type ErrorToastsProps = {
 };
 
 export function ErrorToasts({ toasts, onDismiss }: ErrorToastsProps) {
+  const { t } = useAppTranslation("common");
   if (!toasts.length) {
     return null;
   }
@@ -27,8 +29,8 @@ export function ErrorToasts({ toasts, onDismiss }: ErrorToastsProps) {
               type="button"
               className="ghost error-toast-dismiss"
               onClick={() => onDismiss(toast.id)}
-              aria-label="Dismiss error"
-              title="Dismiss"
+              aria-label={t("errorToasts.dismissError")}
+              title={t("errorToasts.dismiss")}
             >
               ×
             </button>

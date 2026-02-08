@@ -81,3 +81,13 @@ Rule: Any settings update that changes remote transport config must invalidate t
 Root cause: Remote client cache lifecycle was only tied to disconnect/errors, not to transport settings mutations.
 Fix applied: Updated `src-tauri/src/settings/mod.rs` to compare previous vs updated transport settings and reset cached remote backend when they differ; added predicate unit tests.
 Prevention rule: Treat transport-config settings as cache keys and invalidate on change at the backend boundary, not only from UI handlers.
+
+## 2026-02-08 04:02
+Context: i18n 补全执行阶段（批量迁移）
+Type: mistake
+Event: 首次迁移时在 `ApprovalToasts` 里误保留了一份旧标题，导致同一区块渲染双标题。
+Action: 立即删除重复节点并补跑类型检查与组件测试，确认 UI 输出恢复单一文案。
+Rule: 批量替换文案后必须做“重复节点”快速回扫（同 className 同层重复文本）。
+Root cause: 在大块 apply_patch 时新增文案后未同步移除原字面量。
+Fix applied: 修复 `src/features/app/components/ApprovalToasts.tsx` 的重复 `ToastTitle`。
+Prevention rule: 文案迁移统一采用“先替换后 grep 旧字面量”的流程，并在提交前运行目标文件差异人工复核。

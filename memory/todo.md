@@ -4,6 +4,7 @@
 - [ ] 2026-02-07: Implement Orbit-only mobile remote foundation: Orbit transport in `remote_backend`, runner Orbit mode, hosted/self-host settings + pairing UX, and iOS keychain-backed auth storage.
 - [ ] 2026-02-07: Harden Orbit WS transport with explicit reconnect/backoff + replay/resync handling for mobile reconnect flows.
 - [ ] 2026-02-07: Complete Orbit production readiness gaps after baseline wiring: secure secret storage (Keychain/keyring), LaunchAgent/background runner management, pairing QR/code UX, and app-side Orbit reconnect/resync handling.
+- [ ] 2026-02-08: Continue i18n wave-2 migration for remaining heavy modules (`SettingsView`, `GitDiffPanel`, `PromptPanel`, `WorkspaceHome`, `GitDiffViewer`, `Messages`) and remove residual hardcoded UI strings.
 
 ## Done
 - [x] 2026-02-07: Restored Sentry frontend reporting removed in `83a37da` (`@sentry/react`, `Sentry.init`, captureException callsites, and metrics instrumentation).
@@ -18,3 +19,4 @@
 - [x] 2026-02-07: Implement Cloudflare WebSocket transport internals behind `remoteBackendProvider=cloudflare` (connect/read/write/pending-response flow) while preserving TCP behavior and callsites.
 - [x] 2026-02-07: Migrate remote provider naming/settings from Cloudflare-specific keys to Orbit (`orbit` provider + `orbit*` settings).
 - [x] 2026-02-07: Remove unreleased Cloudflare backward-compat aliases and backport tests to keep Orbit implementation canonical-only.
+- [x] 2026-02-08: Complete i18n wave-1 migration by extracting common translation resources and replacing hardcoded strings in low/medium-complexity UI modules.

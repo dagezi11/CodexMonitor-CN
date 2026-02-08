@@ -318,3 +318,10 @@ Type: preference
 Event: User clarified this fork should stay as upstream baseline plus Simplified Chinese i18 support for end users.
 Action: Synced upstream Orbit sign-in/runner/settings wiring while resolving conflicts in favor of preserving Chinese localization and uiLanguage support.
 Rule: For i18 branch syncs, prefer upstream feature parity first and keep only the minimal localization delta required for Simplified Chinese UX.
+
+## 2026-02-08 04:02
+Context: i18n 简体中文补全与跨模块文案迁移
+Type: decision
+Event: 将多模块公共 UI 文案统一迁移到 `common` 命名空间，并在组件层替换硬编码字符串为 `useAppTranslation` 调用。
+Action: 新增 `src/features/i18n/commonTranslations.ts`，并在 about/approval/launch-script/request-input/debug/update/composer/clone/worktree/layout/file-tree/file-preview/open-app/terminal/branch-switcher/rename-thread 等组件落地。
+Rule: 新增用户可见文案优先进入 i18n 资源，禁止在组件中新增硬编码文案（品牌术语白名单除外）。
