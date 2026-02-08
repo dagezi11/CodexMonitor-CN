@@ -116,7 +116,6 @@ export type ReviewTarget =
 export type AccessMode = "read-only" | "current" | "full-access";
 export type BackendMode = "local" | "remote";
 export type RemoteBackendProvider = "tcp" | "orbit";
-export type OrbitDeploymentMode = "hosted" | "self_hosted";
 export type ThemePreference = "system" | "light" | "dark" | "dim";
 export type PersonalityPreference = "friendly" | "pragmatic";
 export type AppLanguagePreference = "system" | "zh-CN" | "en";
@@ -151,7 +150,6 @@ export type AppSettings = {
   remoteBackendProvider: RemoteBackendProvider;
   remoteBackendHost: string;
   remoteBackendToken: string | null;
-  orbitDeploymentMode: OrbitDeploymentMode;
   orbitWsUrl: string | null;
   orbitAuthUrl: string | null;
   orbitRunnerName: string | null;
@@ -185,6 +183,7 @@ export type AppSettings = {
   theme: ThemePreference;
   uiLanguage: AppLanguagePreference;
   usageShowRemaining: boolean;
+  showMessageFilePath: boolean;
   uiFontFamily: string;
   codeFontFamily: string;
   codeFontSize: number;
@@ -259,6 +258,36 @@ export type OrbitRunnerStatus = {
   startedAtMs: number | null;
   lastError: string | null;
   orbitUrl: string | null;
+};
+
+export type TcpDaemonState = "stopped" | "running" | "error";
+
+export type TcpDaemonStatus = {
+  state: TcpDaemonState;
+  pid: number | null;
+  startedAtMs: number | null;
+  lastError: string | null;
+  listenAddr: string | null;
+};
+
+export type TailscaleStatus = {
+  installed: boolean;
+  running: boolean;
+  version: string | null;
+  dnsName: string | null;
+  hostName: string | null;
+  tailnetName: string | null;
+  ipv4: string[];
+  ipv6: string[];
+  suggestedRemoteHost: string | null;
+  message: string;
+};
+
+export type TailscaleDaemonCommandPreview = {
+  command: string;
+  daemonPath: string;
+  args: string[];
+  tokenConfigured: boolean;
 };
 
 export type CodexDoctorResult = {

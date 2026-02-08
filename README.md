@@ -1,8 +1,8 @@
-# CodexMonitor
+﻿# CodexMonitor
 
 ![CodexMonitor](screenshot.png)
 
-CodexMonitor 是一个 Tauri 应用，用于在本地多个工作区中编排多个 Codex agent。它提供了用于管理项目的侧边栏、用于快速操作的主页，以及基于 Codex app-server 协议的会话视图。
+CodexMonitor 是一个 Tauri 应用，用于在本地多个工作区中编排多个 Codex agent。它提供项目侧边栏、主页快捷入口，以及基于 Codex app-server 协议的会话视图。
 
 ## 功能
 
@@ -13,6 +13,7 @@ CodexMonitor 是一个 Tauri 应用，用于在本地多个工作区中编排多
 - 支持通过 worktree 与克隆 agent 实现隔离工作；worktree 位于应用数据目录（兼容旧版 `.codex-worktrees`）。
 - 线程管理：置顶/重命名/归档/复制、线程草稿、停止/中断进行中的 turn。
 - 可选远程后端（daemon）模式，可在另一台机器上运行 Codex。
+- 提供自建远程接入辅助（Orbit 操作 + TCP 模式 Tailscale 检测/主机引导）。
 
 ### 输入区与 Agent 控制
 
@@ -48,12 +49,11 @@ CodexMonitor 是一个 Tauri 应用，用于在本地多个工作区中编排多
 - Rust 工具链（stable）
 - CMake（原生依赖需要；听写/Whisper 依赖它）
 - LLVM/Clang（Windows 构建听写依赖时 bindgen 需要）
-- 系统已安装 Codex，并且 `PATH` 中可直接调用 `codex`
+- 已安装 Codex CLI，且 `PATH` 可直接调用 `codex`（或在应用/工作区设置里配置自定义 Codex 二进制）
 - Git CLI（用于 worktree 操作）
-- GitHub CLI（`gh`，Issues 面板可选）
+- GitHub CLI（`gh`，Issues/PR 集成可选）
 
-如果 `codex` 不在 `PATH` 中，请在后端改为按工作区传入自定义路径。
-如果遇到原生构建报错，请执行：
+如遇原生构建错误：
 
 ```bash
 npm run doctor
@@ -70,7 +70,75 @@ npm install
 开发模式运行：
 
 ```bash
-npm run tauri dev
+npm run tauri:dev
+```
+
+## iOS 支持（WIP）
+
+iOS 支持正在进行中。
+
+- 当前状态：移动端布局可运行，远端后端链路已接入，iOS 默认使用 remote backend 模式。
+- 当前限制：移动端暂不支持 terminal 与 dictation。
+- 桌面行为不变：macOS/Linux/Windows 仍是 local-first，除非显式切换为 remote。
+
+### iOS 前置条件
+
+- 已安装 Xcode + Command Line Tools。
+- 已安装 Rust iOS targets：
+
+```bash
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+# 可选（Intel Mac 模拟器）：
+rustup target add x86_64-apple-ios
+```
+
+- 已配置 Apple 签名（开发团队）：
+  - 在 `src-tauri/tauri.conf.json` 设置 `bundle.iOS.developmentTeam`，或
+  - 在设备脚本中传入 `--team <TEAM_ID>`。
+
+### 运行到 iOS 模拟器
+
+```bash
+./scripts/build_run_ios.sh
+```
+
+可选参数：
+
+- `--simulator "<name>"`：指定模拟器。
+- `--target aarch64-sim|x86_64-sim`：覆盖架构。
+- `--skip-build`：复用已有 app bundle。
+- `--no-clean`：保留 `src-tauri/gen/apple/build`。
+
+### 运行到 USB 真机
+
+列出可发现设备：
+
+```bash
+./scripts/build_run_ios_device.sh --list-devices
+```
+
+构建、安装并启动到指定设备：
+
+```bash
+./scripts/build_run_ios_device.sh --device "<device name or identifier>" --team <TEAM_ID>
+```
+
+可选参数：
+
+- `--target aarch64`：覆盖架构。
+- `--skip-build`：复用已有 app bundle。
+- `--bundle-id <id>`：启动非默认 bundle id。
+
+首次真机安装通常需要：
+
+1. iPhone 已解锁并信任此 Mac。
+2. iPhone 已启用 Developer Mode。
+3. 已至少在 Xcode 中完成一次配对/签名确认。
+
+若签名尚未就绪，可先打开 Xcode：
+
+```bash
+./scripts/build_run_ios_device.sh --open-xcode
 ```
 
 ## 发布构建
@@ -78,7 +146,7 @@ npm run tauri dev
 构建生产环境 Tauri 包：
 
 ```bash
-npm run tauri build
+npm run tauri:build
 ```
 
 产物位于 `src-tauri/target/release/bundle/`（按平台划分子目录）。
@@ -107,26 +175,7 @@ npm run doctor:win:e
 npm run tauri:build:win:e
 ```
 
-脚本将 `E:\CodexMonitorEnv` 作为构建环境根目录，并仅注入进程级变量：
-
-- `LIBCLANG_PATH=E:\CodexMonitorEnv\LLVM\bin`
-- `TEMP` / `TMP` => `E:\CodexMonitorEnv\tmp`
-- `CARGO_TARGET_DIR=E:\CodexMonitorEnv\cargo-target\CodexMonitor-CN`
-- `RUSTUP_TOOLCHAIN=1.89.0-x86_64-pc-windows-msvc`
-
-LLVM 期望路径：
-
-- `E:\CodexMonitorEnv\LLVM\bin\clang.exe`
-- `E:\CodexMonitorEnv\LLVM\bin\libclang.dll`
-
-该脚本使用的 Tauri updater 签名密钥路径：
-
-- `E:\CodexMonitorEnv\tauri\codexmonitor.key`
-- 可选密码文件：`E:\CodexMonitorEnv\tauri\codexmonitor.key.password`
-
-脚本还会从以下位置导入 MSVC Build Tools 环境：
-
-- `D:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`
+脚本将 `E:\CodexMonitorEnv` 作为构建环境根目录，并仅注入进程级变量（如 `LIBCLANG_PATH`、`TEMP/TMP`、`CARGO_TARGET_DIR`、`RUSTUP_TOOLCHAIN`）。
 
 ## 类型检查
 
@@ -134,6 +183,17 @@ LLVM 期望路径：
 
 ```bash
 npm run typecheck
+```
+
+## 校验
+
+建议在任务结束时执行：
+
+```bash
+npm run lint
+npm run test
+npm run typecheck
+cd src-tauri && cargo check
 ```
 
 ## Fork 更新签名配置
@@ -146,45 +206,26 @@ npm run typecheck
 npm run tauri -- signer generate -w E:\CodexMonitorEnv\tauri\codexmonitor.key
 ```
 
-该命令也会将公钥写入：
-
-- `E:\CodexMonitorEnv\tauri\codexmonitor.key.pub`
-
-### 2）更新应用 updater 配置
+### 2）更新 updater 配置
 
 - 将 `.pub` 内容复制到 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。
-- 将 `plugins.updater.endpoints` 指向你仓库的 latest feed：
+- 将 `plugins.updater.endpoints` 指向你的仓库 latest feed：
   - `https://github.com/<your-org-or-user>/<your-repo>/releases/latest/download/latest.json`
 
 ### 3）配置 GitHub Actions Secrets
 
-发布工作流依赖以下 secrets：
-
 - `TAURI_SIGNING_PRIVATE_KEY_B64`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
-PowerShell 示例（生成 `TAURI_SIGNING_PRIVATE_KEY_B64` 所需 base64 值）：
+PowerShell 示例（生成 base64）：
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes('E:\CodexMonitorEnv\tauri\codexmonitor.key'))
 ```
 
-### 4）本地 Windows E 盘构建用法
-
-`scripts/tauri-build-win-e.ps1` 现支持自动加载签名 secrets：
-
-- 从 `E:\CodexMonitorEnv\tauri\codexmonitor.key` 读取私钥。
-- 密码读取优先级：
-  1. 进程环境变量 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
-  2. `E:\CodexMonitorEnv\tauri\codexmonitor.key.password`
-
-如果密钥缺失，脚本会直接退出并给出生成命令提示。
-
 ### 兼容性说明
 
 切换到新公钥后，与旧密钥签名版本的更新链将不兼容。用户可能需要手动重装一次完成迁移。
-
-注意：`npm run build` 在打包前也会先执行 `tsc`。
 
 ## 项目结构
 
@@ -195,31 +236,40 @@ src/
   styles/           按区域拆分的 CSS
   types.ts          共享类型
 src-tauri/
-  src/lib.rs        Tauri 后端 + codex app-server 客户端
+  src/lib.rs        Tauri 应用后端命令注册
+  src/bin/codex_monitor_daemon.rs  远端 daemon JSON-RPC 进程
+  src/shared/       app + daemon 共享后端核心
+  src/workspaces/   workspace/worktree 适配层
+  src/codex/        codex app-server 适配层
+  src/files/        文件适配层
   tauri.conf.json   窗口配置
 ```
 
 ## 说明
 
 - 工作区持久化到应用数据目录下的 `workspaces.json`。
-- 应用设置持久化到应用数据目录下的 `settings.json`（Codex 路径、默认访问模式、UI 缩放、UI 语言偏好）。
-- UI 支持功能开关，并在读写时同步到 `$CODEX_HOME/config.toml`（或 `~/.codex/config.toml`）。稳定项：协作模式（`features.collaboration_modes`）、personality（`personality`）、Steer 模式（`features.steer`）、后台终端（`features.unified_exec`）。实验项：Collab 模式（`features.collab`）与 Apps（`features.apps`）。
+- 应用设置持久化到应用数据目录下的 `settings.json`（主题、backend 模式/提供方、远端 endpoint/token、Codex 路径、默认访问模式、UI 缩放、UI 语言偏好）。
+- UI 支持功能开关，并在读写时同步到 `$CODEX_HOME/config.toml`（或 `~/.codex/config.toml`）。稳定项：协作模式（`features.collaboration_modes`）、personality（`personality`）、Steer 模式（`features.steer`）、后台终端（`features.unified_exec`）；实验项：Collab 模式（`features.collab`）与 Apps（`features.apps`）。
 - 应用在启动与窗口重新聚焦时，会为每个工作区重新连接并刷新线程列表。
 - 线程恢复逻辑会按工作区 `cwd` 过滤 `thread/list` 结果。
 - 选择线程时始终调用 `thread/resume` 以从磁盘刷新消息。
 - CLI 会话仅在其 `cwd` 与工作区路径匹配时显示；除非恢复，否则不会实时流式显示。
-- 应用通过 stdio 使用 `codex app-server`；详见 `src-tauri/src/lib.rs`。
-- Codex 会话默认使用 Codex home（通常是 `~/.codex`）；若工作区存在旧版 `.codexmonitor/`，则该工作区优先使用它。
+- 应用通过 stdio 使用 `codex app-server`；详见 `src-tauri/src/lib.rs` 与 `src-tauri/src/codex/`。
+- 远端 daemon 入口为 `src-tauri/src/bin/codex_monitor_daemon.rs`；共享领域逻辑位于 `src-tauri/src/shared/`。
+- Codex home 解析顺序：工作区设置（若有）→ 旧版 `.codexmonitor/` → `$CODEX_HOME`/`~/.codex`。
 - Worktree agent 位于应用数据目录（`worktrees/<workspace-id>`）；兼容旧版 `.codex-worktrees/` 路径，且应用不再修改仓库 `.gitignore`。
 - UI 状态（面板尺寸、降低透明度开关、最近线程活动）保存在 `localStorage`。
-- UI 语言在 Settings → Display & Sound 中支持 `System` / `简体中文` / `English`。当前 i18n 覆盖核心壳层 + Home + Settings 入口/展示文案；未覆盖文本回退为英语。
 - 自定义 prompts 从 `$CODEX_HOME/prompts`（或 `~/.codex/prompts`）加载，支持可选 frontmatter 描述/参数提示。
 
 ## Tauri IPC 接口面
 
-前端调用位于 `src/services/tauri.ts`，并映射到 `src-tauri/src/lib.rs` 中的命令。核心命令包括：
+前端调用位于 `src/services/tauri.ts`，并映射到 `src-tauri/src/lib.rs` 命令。当前核心接口包括：
 
-- 工作区生命周期：`list_workspaces`、`add_workspace`、`add_worktree`、`remove_workspace`、`remove_worktree`、`connect_workspace`、`update_workspace_settings`。
-- 线程：`start_thread`、`list_threads`、`resume_thread`、`archive_thread`、`send_user_message`、`turn_interrupt`、`respond_to_server_request`。
-- Review 与模型：`start_review`、`model_list`、`account_rate_limits`、`skills_list`。
-- Git 与文件：`get_git_status`、`get_git_diffs`、`get_git_log`、`get_git_remote`、`list_git_branches`、`checkout_git_branch`、`create_git_branch`、`list_workspace_files`。
+- 设置/配置/文件：`get_app_settings`、`update_app_settings`、`get_codex_config_path`、`get_config_model`、`file_read`、`file_write`、`codex_doctor`、`menu_set_accelerators`。
+- 工作区/worktree：`list_workspaces`、`is_workspace_path_dir`、`add_workspace`、`add_clone`、`add_worktree`、`worktree_setup_status`、`worktree_setup_mark_ran`、`rename_worktree`、`rename_worktree_upstream`、`apply_worktree_changes`、`update_workspace_settings`、`update_workspace_codex_bin`、`remove_workspace`、`remove_worktree`、`connect_workspace`、`list_workspace_files`、`read_workspace_file`、`open_workspace_in`、`get_open_app_icon`。
+- 线程/turn/review：`start_thread`、`fork_thread`、`compact_thread`、`list_threads`、`resume_thread`、`archive_thread`、`set_thread_name`、`send_user_message`、`turn_interrupt`、`respond_to_server_request`、`start_review`、`remember_approval_rule`、`get_commit_message_prompt`、`generate_commit_message`、`generate_run_metadata`。
+- 账号/模型/协作：`model_list`、`account_rate_limits`、`account_read`、`skills_list`、`apps_list`、`collaboration_mode_list`、`codex_login`、`codex_login_cancel`、`list_mcp_server_status`。
+- Git/GitHub：`get_git_status`、`list_git_roots`、`get_git_diffs`、`get_git_log`、`get_git_commit_diff`、`get_git_remote`、`stage_git_file`、`stage_git_all`、`unstage_git_file`、`revert_git_file`、`revert_git_all`、`commit_git`、`push_git`、`pull_git`、`fetch_git`、`sync_git`、`list_git_branches`、`checkout_git_branch`、`create_git_branch`、`get_github_issues`、`get_github_pull_requests`、`get_github_pull_request_diff`、`get_github_pull_request_comments`。
+- Prompts：`prompts_list`、`prompts_create`、`prompts_update`、`prompts_delete`、`prompts_move`、`prompts_workspace_dir`、`prompts_global_dir`。
+- 终端/听写/通知/用量：`terminal_open`、`terminal_write`、`terminal_resize`、`terminal_close`、`dictation_model_status`、`dictation_download_model`、`dictation_cancel_download`、`dictation_remove_model`、`dictation_request_permission`、`dictation_start`、`dictation_stop`、`dictation_cancel`、`send_notification_fallback`、`is_macos_debug_build`、`local_usage_snapshot`。
+- 远端后端辅助：`orbit_connect_test`、`orbit_sign_in_start`、`orbit_sign_in_poll`、`orbit_sign_out`、`orbit_runner_start`、`orbit_runner_stop`、`orbit_runner_status`、`tailscale_status`、`tailscale_daemon_command_preview`、`tailscale_daemon_start`、`tailscale_daemon_stop`、`tailscale_daemon_status`。

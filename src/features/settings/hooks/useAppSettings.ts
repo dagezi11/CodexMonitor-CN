@@ -17,6 +17,7 @@ import {
 import { normalizeOpenAppTargets } from "../../app/utils/openApp";
 import { getDefaultInterruptShortcut, isMacPlatform } from "../../../utils/shortcuts";
 import type { AppLanguagePreference } from "../../../types";
+import { isMobilePlatform } from "../../../utils/platformPaths";
 
 const allowedThemes = new Set(["system", "light", "dark", "dim"]);
 const allowedPersonality = new Set(["friendly", "pragmatic"]);
@@ -24,14 +25,14 @@ const allowedLanguages = new Set<AppLanguagePreference>(["system", "zh-CN", "en"
 
 function buildDefaultSettings(): AppSettings {
   const isMac = isMacPlatform();
+  const isMobile = isMobilePlatform();
   return {
     codexBin: null,
     codexArgs: null,
-    backendMode: "local",
+    backendMode: isMobile ? "remote" : "local",
     remoteBackendProvider: "tcp",
     remoteBackendHost: "127.0.0.1:4732",
     remoteBackendToken: null,
-    orbitDeploymentMode: "hosted",
     orbitWsUrl: null,
     orbitAuthUrl: null,
     orbitRunnerName: null,
@@ -65,6 +66,7 @@ function buildDefaultSettings(): AppSettings {
     theme: "system",
     uiLanguage: "system",
     usageShowRemaining: false,
+    showMessageFilePath: true,
     uiFontFamily: DEFAULT_UI_FONT_FAMILY,
     codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
     codeFontSize: CODE_FONT_SIZE_DEFAULT,

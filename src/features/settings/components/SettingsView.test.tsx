@@ -25,7 +25,6 @@ const baseSettings: AppSettings = {
   remoteBackendProvider: "tcp",
   remoteBackendHost: "127.0.0.1:4732",
   remoteBackendToken: null,
-  orbitDeploymentMode: "hosted",
   orbitWsUrl: null,
   orbitAuthUrl: null,
   orbitRunnerName: null,
@@ -58,6 +57,7 @@ const baseSettings: AppSettings = {
   uiScale: 1,
   theme: "system",
   usageShowRemaining: false,
+  showMessageFilePath: true,
   uiFontFamily:
     'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   codeFontFamily:
@@ -345,6 +345,31 @@ describe("SettingsView Display", () => {
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
         expect.objectContaining({ usageShowRemaining: true }),
+      );
+    });
+  });
+
+  it("toggles file path visibility in messages", async () => {
+    const onUpdateAppSettings = vi.fn().mockResolvedValue(undefined);
+    renderDisplaySection({ onUpdateAppSettings });
+
+    const row = screen
+      .getByText("Show file path in messages")
+      .closest(".settings-toggle-row") as HTMLElement | null;
+    if (!row) {
+      throw new Error("Expected file path visibility row");
+    }
+    const toggle = row.querySelector(
+      "button.settings-toggle",
+    ) as HTMLButtonElement | null;
+    if (!toggle) {
+      throw new Error("Expected file path visibility toggle");
+    }
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(onUpdateAppSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ showMessageFilePath: false }),
       );
     });
   });
@@ -654,7 +679,7 @@ describe("SettingsView Codex overrides", () => {
     });
   });
 
-  it("renders Orbit controls in remote mode for Orbit provider", async () => {
+  it("renders Orbit controls for Orbit provider even in local backend mode", async () => {
     cleanup();
     render(
       <SettingsView
@@ -673,7 +698,7 @@ describe("SettingsView Codex overrides", () => {
         onToggleTransparency={vi.fn()}
         appSettings={{
           ...baseSettings,
-          backendMode: "remote",
+          backendMode: "local",
           remoteBackendProvider: "orbit",
         }}
         openAppIconById={{}}
@@ -689,12 +714,11 @@ describe("SettingsView Codex overrides", () => {
         onDownloadDictationModel={vi.fn()}
         onCancelDictationDownload={vi.fn()}
         onRemoveDictationModel={vi.fn()}
-        initialSection="codex"
+        initialSection="server"
       />,
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Orbit deployment mode")).toBeTruthy();
       expect(screen.getByLabelText("Orbit websocket URL")).toBeTruthy();
       expect(screen.getByLabelText("Orbit auth URL")).toBeTruthy();
       expect(screen.getByLabelText("Orbit runner name")).toBeTruthy();
@@ -706,6 +730,54 @@ describe("SettingsView Codex overrides", () => {
       expect(screen.getByRole("button", { name: "Start Runner" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Stop Runner" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Refresh Status" })).toBeTruthy();
+    });
+  });
+
+  it("renders mobile daemon controls in local backend mode for TCP provider", async () => {
+    cleanup();
+    render(
+      <SettingsView
+        workspaceGroups={[]}
+        groupedWorkspaces={[]}
+        ungroupedLabel="Ungrouped"
+        onClose={vi.fn()}
+        onMoveWorkspace={vi.fn()}
+        onDeleteWorkspace={vi.fn()}
+        onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        reduceTransparency={false}
+        onToggleTransparency={vi.fn()}
+        appSettings={{
+          ...baseSettings,
+          backendMode: "local",
+          remoteBackendProvider: "tcp",
+        }}
+        openAppIconById={{}}
+        onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+        onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+        onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+        onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+        scaleShortcutTitle="Scale shortcut"
+        scaleShortcutText="Use Command +/-"
+        onTestNotificationSound={vi.fn()}
+        onTestSystemNotification={vi.fn()}
+        dictationModelStatus={null}
+        onDownloadDictationModel={vi.fn()}
+        onCancelDictationDownload={vi.fn()}
+        onRemoveDictationModel={vi.fn()}
+        initialSection="server"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Start daemon" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Stop daemon" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Refresh status" })).toBeTruthy();
+      expect(screen.getByLabelText("Remote backend host")).toBeTruthy();
+      expect(screen.getByLabelText("Remote backend token")).toBeTruthy();
     });
   });
 
@@ -800,7 +872,7 @@ describe("SettingsView Codex overrides", () => {
         onDownloadDictationModel={vi.fn()}
         onCancelDictationDownload={vi.fn()}
         onRemoveDictationModel={vi.fn()}
-        initialSection="codex"
+        initialSection="server"
         orbitServiceClient={orbitServiceClient}
       />,
     );
@@ -846,7 +918,7 @@ describe("SettingsView Codex overrides", () => {
         onDownloadDictationModel={vi.fn()}
         onCancelDictationDownload={vi.fn()}
         onRemoveDictationModel={vi.fn()}
-        initialSection="codex"
+        initialSection="server"
         orbitServiceClient={orbitServiceClient}
       />,
     );
@@ -934,7 +1006,7 @@ describe("SettingsView Codex overrides", () => {
         onDownloadDictationModel={vi.fn()}
         onCancelDictationDownload={vi.fn()}
         onRemoveDictationModel={vi.fn()}
-        initialSection="codex"
+        initialSection="server"
         orbitServiceClient={orbitServiceClient}
       />,
     );
@@ -945,6 +1017,106 @@ describe("SettingsView Codex overrides", () => {
 
     await waitFor(() => {
       expect(onUpdateAppSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ remoteBackendToken: null }),
+      );
+    });
+  });
+
+  it("retries Orbit token persistence after a failed save", async () => {
+    cleanup();
+    const onUpdateAppSettings = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("settings write failed"))
+      .mockResolvedValue(undefined);
+    const orbitServiceClient: NonNullable<
+      ComponentProps<typeof SettingsView>["orbitServiceClient"]
+    > = {
+      orbitConnectTest: vi.fn().mockResolvedValue({
+        ok: true,
+        latencyMs: 12,
+        message: "Connected to Orbit relay.",
+      }),
+      orbitSignInStart: vi.fn(),
+      orbitSignInPoll: vi.fn(),
+      orbitSignOut: vi.fn().mockResolvedValue({ success: true, message: null }),
+      orbitRunnerStart: vi.fn().mockResolvedValue({
+        state: "running",
+        pid: 123,
+        startedAtMs: Date.now(),
+        lastError: null,
+        orbitUrl: "wss://orbit.example/ws",
+      }),
+      orbitRunnerStop: vi.fn().mockResolvedValue({
+        state: "stopped",
+        pid: null,
+        startedAtMs: null,
+        lastError: null,
+        orbitUrl: "wss://orbit.example/ws",
+      }),
+      orbitRunnerStatus: vi.fn().mockResolvedValue({
+        state: "stopped",
+        pid: null,
+        startedAtMs: null,
+        lastError: null,
+        orbitUrl: "wss://orbit.example/ws",
+      }),
+    };
+
+    render(
+      <SettingsView
+        workspaceGroups={[]}
+        groupedWorkspaces={[]}
+        ungroupedLabel="Ungrouped"
+        onClose={vi.fn()}
+        onMoveWorkspace={vi.fn()}
+        onDeleteWorkspace={vi.fn()}
+        onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+        reduceTransparency={false}
+        onToggleTransparency={vi.fn()}
+        appSettings={{
+          ...baseSettings,
+          backendMode: "remote",
+          remoteBackendProvider: "orbit",
+          remoteBackendToken: "token-to-clear",
+        }}
+        openAppIconById={{}}
+        onUpdateAppSettings={onUpdateAppSettings}
+        onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+        onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+        onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+        scaleShortcutTitle="Scale shortcut"
+        scaleShortcutText="Use Command +/-"
+        onTestNotificationSound={vi.fn()}
+        onTestSystemNotification={vi.fn()}
+        dictationModelStatus={null}
+        onDownloadDictationModel={vi.fn()}
+        onCancelDictationDownload={vi.fn()}
+        onRemoveDictationModel={vi.fn()}
+        initialSection="server"
+        orbitServiceClient={orbitServiceClient}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
+    });
+
+    await waitFor(() => {
+      expect(onUpdateAppSettings).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Sign Out failed: settings write failed")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
+    });
+
+    await waitFor(() => {
+      expect(onUpdateAppSettings).toHaveBeenCalledTimes(2);
+      expect(onUpdateAppSettings).toHaveBeenLastCalledWith(
         expect.objectContaining({ remoteBackendToken: null }),
       );
     });
@@ -1007,6 +1179,153 @@ describe("SettingsView Features", () => {
         expect.objectContaining({ unifiedExecEnabled: false }),
       );
     });
+  });
+});
+
+describe("SettingsView mobile layout", () => {
+  it("uses a master/detail flow on narrow mobile widths", async () => {
+    cleanup();
+    const originalMatchMedia = window.matchMedia;
+    const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(
+      window.navigator,
+      "platform",
+    );
+    const originalUserAgentDescriptor = Object.getOwnPropertyDescriptor(
+      window.navigator,
+      "userAgent",
+    );
+    const originalTouchPointsDescriptor = Object.getOwnPropertyDescriptor(
+      window.navigator,
+      "maxTouchPoints",
+    );
+
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes("max-width: 720px"),
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "iPhone",
+    });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+    });
+    Object.defineProperty(window.navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
+
+    try {
+      const rendered = render(
+        <SettingsView
+          workspaceGroups={[]}
+          groupedWorkspaces={[]}
+          ungroupedLabel="Ungrouped"
+          onClose={vi.fn()}
+          onMoveWorkspace={vi.fn()}
+          onDeleteWorkspace={vi.fn()}
+          onCreateWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onRenameWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onMoveWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onDeleteWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          onAssignWorkspaceGroup={vi.fn().mockResolvedValue(null)}
+          reduceTransparency={false}
+          onToggleTransparency={vi.fn()}
+          appSettings={baseSettings}
+          openAppIconById={{}}
+          onUpdateAppSettings={vi.fn().mockResolvedValue(undefined)}
+          onRunDoctor={vi.fn().mockResolvedValue(createDoctorResult())}
+          onUpdateWorkspaceCodexBin={vi.fn().mockResolvedValue(undefined)}
+          onUpdateWorkspaceSettings={vi.fn().mockResolvedValue(undefined)}
+          scaleShortcutTitle="Scale shortcut"
+          scaleShortcutText="Use Command +/-"
+          onTestNotificationSound={vi.fn()}
+          onTestSystemNotification={vi.fn()}
+          dictationModelStatus={null}
+          onDownloadDictationModel={vi.fn()}
+          onCancelDictationDownload={vi.fn()}
+          onRemoveDictationModel={vi.fn()}
+        />,
+      );
+
+      expect(
+        within(rendered.container).queryByText("Sections"),
+      ).toBeNull();
+      expect(
+        rendered.container.querySelectorAll(".ds-panel-nav-item-disclosure")
+          .length,
+      ).toBeGreaterThan(0);
+
+      fireEvent.click(
+        within(rendered.container).getByRole("button", {
+          name: "Display & Sound",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          within(rendered.container).getByRole("button", {
+            name: "Back to settings sections",
+          }),
+        ).toBeTruthy();
+        expect(
+          within(rendered.container).getByText("Display & Sound", {
+            selector: ".settings-mobile-detail-title",
+          }),
+        ).toBeTruthy();
+      });
+
+      fireEvent.click(
+        within(rendered.container).getByRole("button", {
+          name: "Back to settings sections",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(within(rendered.container).queryByText("Sections")).toBeNull();
+      });
+    } finally {
+      if (originalMatchMedia) {
+        Object.defineProperty(window, "matchMedia", {
+          configurable: true,
+          writable: true,
+          value: originalMatchMedia,
+        });
+      } else {
+        Reflect.deleteProperty(window, "matchMedia");
+      }
+      if (originalPlatformDescriptor) {
+        Object.defineProperty(window.navigator, "platform", originalPlatformDescriptor);
+      } else {
+        Reflect.deleteProperty(window.navigator, "platform");
+      }
+      if (originalUserAgentDescriptor) {
+        Object.defineProperty(window.navigator, "userAgent", originalUserAgentDescriptor);
+      } else {
+        Reflect.deleteProperty(window.navigator, "userAgent");
+      }
+      if (originalTouchPointsDescriptor) {
+        Object.defineProperty(
+          window.navigator,
+          "maxTouchPoints",
+          originalTouchPointsDescriptor,
+        );
+      } else {
+        Reflect.deleteProperty(window.navigator, "maxTouchPoints");
+      }
+    }
   });
 });
 

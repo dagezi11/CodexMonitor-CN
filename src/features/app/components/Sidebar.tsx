@@ -6,7 +6,7 @@ import type {
   WorkspaceInfo,
 } from "../../../types";
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { FolderOpen } from "lucide-react";
 import Copy from "lucide-react/dist/esm/icons/copy";
@@ -104,7 +104,7 @@ type SidebarProps = {
   onWorkspaceDrop: (event: React.DragEvent<HTMLElement>) => void;
 };
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   workspaces,
   groupedWorkspaces,
   hasWorkspaceGroups,
@@ -701,4 +701,6 @@ export function Sidebar({
       />
     </aside>
   );
-}
+});
+
+Sidebar.displayName = "Sidebar";

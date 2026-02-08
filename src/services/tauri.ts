@@ -12,6 +12,9 @@ import type {
   OrbitRunnerStatus,
   OrbitSignInPollResult,
   OrbitSignOutResult,
+  TcpDaemonStatus,
+  TailscaleDaemonCommandPreview,
+  TailscaleStatus,
   WorkspaceInfo,
   WorkspaceSettings,
 } from "../types";
@@ -585,6 +588,10 @@ export async function getAppSettings(): Promise<AppSettings> {
   return invoke<AppSettings>("get_app_settings");
 }
 
+export async function isMobileRuntime(): Promise<boolean> {
+  return invoke<boolean>("is_mobile_runtime");
+}
+
 export async function updateAppSettings(settings: AppSettings): Promise<AppSettings> {
   return invoke<AppSettings>("update_app_settings", { settings });
 }
@@ -615,6 +622,26 @@ export async function orbitRunnerStop(): Promise<OrbitRunnerStatus> {
 
 export async function orbitRunnerStatus(): Promise<OrbitRunnerStatus> {
   return invoke<OrbitRunnerStatus>("orbit_runner_status");
+}
+
+export async function tailscaleStatus(): Promise<TailscaleStatus> {
+  return invoke<TailscaleStatus>("tailscale_status");
+}
+
+export async function tailscaleDaemonCommandPreview(): Promise<TailscaleDaemonCommandPreview> {
+  return invoke<TailscaleDaemonCommandPreview>("tailscale_daemon_command_preview");
+}
+
+export async function tailscaleDaemonStart(): Promise<TcpDaemonStatus> {
+  return invoke<TcpDaemonStatus>("tailscale_daemon_start");
+}
+
+export async function tailscaleDaemonStop(): Promise<TcpDaemonStatus> {
+  return invoke<TcpDaemonStatus>("tailscale_daemon_stop");
+}
+
+export async function tailscaleDaemonStatus(): Promise<TcpDaemonStatus> {
+  return invoke<TcpDaemonStatus>("tailscale_daemon_status");
 }
 
 type MenuAcceleratorUpdate = {

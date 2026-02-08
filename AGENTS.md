@@ -10,19 +10,25 @@ Purpose: keep lightweight, durable project memory so agents avoid repeating mist
 
 Store memory in the project root under `./memory/`:
 
-- `memory/decisions.md` — durable architecture/implementation decisions and conventions
+- `memory/decisions.md` — active canonical rules only (high-signal, current behavior)
 - `memory/mistakes.md` — mistakes, fixes, and prevention rules
 - `memory/todo.md` — open loops and follow-up tasks
 - `memory/context.md` — optional short-lived working context (can be compacted)
+- `memory/archive/` — detailed historical decision logs moved out of canonical memory during compaction
 
 ### Automatic Write Rules
 
-Agents should append an entry when ANY of the following happens:
+Agents should write memory entries when ANY of the following happens:
 
 1. User states a stable preference or rule ("do it this way").
 2. Agent makes a non-trivial mistake and corrects it.
 3. A decision is made that affects future implementation.
 4. A follow-up task is identified but not completed immediately.
+
+Write target:
+- Put durable behavior/rules in `memory/decisions.md`.
+- Put implementation-step history and low-signal details in `memory/archive/*`.
+- Keep `memory/mistakes.md` and `memory/todo.md` append-only.
 
 Do NOT write:
 - trivial chatter
@@ -37,20 +43,20 @@ Before starting a task, agents must read:
 1. `memory/decisions.md`
 2. recent entries in `memory/mistakes.md`
 3. open items in `memory/todo.md`
+4. `memory/archive/*` only when current files do not provide enough context
 
 Then apply those constraints during planning and implementation.
 
-### Entry Format (Append-only)
+### Entry Format (Canonical Decisions)
 
 Use this compact format:
 
 ```md
 ## YYYY-MM-DD HH:mm
 Context: <task or feature>
-Type: decision | mistake | preference | todo
-Event: <what happened>
-Action: <what changed / fix applied>
+Type: decision | preference
 Rule: <one-line future behavior>
+Why: <short reason this rule exists>
 ```
 
 ### Mistake Entry Requirements
@@ -63,9 +69,10 @@ For entries in `memory/mistakes.md`, include:
 
 ### Maintenance
 
-- Keep memory append-only by default.
-- Compaction is allowed into summaries, but do not silently remove meaning.
-- Preserve recent detail (at least latest 30 days) before aggressive compaction.
+- Keep `memory/decisions.md` compact and high-signal (target: <= 150 lines).
+- Compaction should move detailed historical entries to `memory/archive/` and keep `memory/decisions.md` as canonical rules.
+- During compaction, preserve meaning and keep at least the latest 30 days of detail in `memory/archive/`.
+- When compacting `memory/decisions.md`, append one compaction entry noting where full history was archived.
 
 ## Project Summary
 CodexMonitor is a Tauri app that orchestrates Codex agents across local workspaces.
@@ -210,7 +217,7 @@ Use the design-system layer for shared UI shells and tokenized styling.
   - `src/features/design-system/components/panel/PanelPrimitives.tsx`
   - `src/features/design-system/components/popover/PopoverPrimitives.tsx`
   - Toast sub-primitives: `ToastHeader`, `ToastActions`, `ToastError` (in `ToastPrimitives.tsx`)
-  - Panel sub-primitives: `PanelMeta`, `PanelSearchField` (in `PanelPrimitives.tsx`)
+  - Panel sub-primitives: `PanelMeta`, `PanelSearchField`, `PanelNavList`, `PanelNavItem` (in `PanelPrimitives.tsx`)
   - Popover sub-primitives: `PopoverMenuItem` (in `PopoverPrimitives.tsx`)
 - Diff theming and style bridge:
   - `src/features/design-system/diff/diffViewerTheme.ts`
@@ -226,7 +233,7 @@ Naming conventions:
 
 - DS CSS classes use `.ds-*` prefixes.
 - DS CSS variables use `--ds-*` prefixes.
-- DS React primitives use `PascalCase` component names (`ModalShell`, `ToastCard`, `ToastHeader`, `ToastActions`, `ToastError`, `PanelFrame`, `PanelHeader`, `PanelMeta`, `PanelSearchField`, `PopoverSurface`, `PopoverMenuItem`).
+- DS React primitives use `PascalCase` component names (`ModalShell`, `ToastCard`, `ToastHeader`, `ToastActions`, `ToastError`, `PanelFrame`, `PanelHeader`, `PanelMeta`, `PanelSearchField`, `PanelNavList`, `PanelNavItem`, `PopoverSurface`, `PopoverMenuItem`).
 - Feature CSS should keep feature-prefixed classes (`.worktree-*`, `.update-*`) for content/layout specifics.
 
 Do:
@@ -399,6 +406,23 @@ The app uses a shared event hub so each native event has one `listen` and many s
 ```bash
 npm install
 npm run tauri dev
+```
+
+## iOS (WIP)
+
+- iOS is supported as WIP.
+- Simulator:
+```bash
+./scripts/build_run_ios.sh
+```
+- USB device:
+```bash
+./scripts/build_run_ios_device.sh --list-devices
+./scripts/build_run_ios_device.sh --device "<device name or identifier>" --team <TEAM_ID>
+```
+- If signing is not ready:
+```bash
+./scripts/build_run_ios_device.sh --open-xcode
 ```
 
 ## Release Build

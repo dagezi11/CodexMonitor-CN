@@ -262,6 +262,59 @@ pub(crate) struct OrbitRunnerStatus {
     pub(crate) orbit_url: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum TcpDaemonState {
+    Stopped,
+    Running,
+    Error,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TcpDaemonStatus {
+    pub(crate) state: TcpDaemonState,
+    #[serde(default)]
+    pub(crate) pid: Option<u32>,
+    #[serde(default)]
+    pub(crate) started_at_ms: Option<i64>,
+    #[serde(default)]
+    pub(crate) last_error: Option<String>,
+    #[serde(default)]
+    pub(crate) listen_addr: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TailscaleStatus {
+    pub(crate) installed: bool,
+    pub(crate) running: bool,
+    #[serde(default)]
+    pub(crate) version: Option<String>,
+    #[serde(default)]
+    pub(crate) dns_name: Option<String>,
+    #[serde(default)]
+    pub(crate) host_name: Option<String>,
+    #[serde(default)]
+    pub(crate) tailnet_name: Option<String>,
+    #[serde(default)]
+    pub(crate) ipv4: Vec<String>,
+    #[serde(default)]
+    pub(crate) ipv6: Vec<String>,
+    #[serde(default)]
+    pub(crate) suggested_remote_host: Option<String>,
+    pub(crate) message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TailscaleDaemonCommandPreview {
+    pub(crate) command: String,
+    pub(crate) daemon_path: String,
+    pub(crate) args: Vec<String>,
+    pub(crate) token_configured: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct BranchInfo {
     pub(crate) name: String,
@@ -400,8 +453,6 @@ pub(crate) struct AppSettings {
     pub(crate) remote_backend_host: String,
     #[serde(default, rename = "remoteBackendToken")]
     pub(crate) remote_backend_token: Option<String>,
-    #[serde(default, rename = "orbitDeploymentMode")]
-    pub(crate) orbit_deployment_mode: OrbitDeploymentMode,
     #[serde(default, rename = "orbitWsUrl")]
     pub(crate) orbit_ws_url: Option<String>,
     #[serde(default, rename = "orbitAuthUrl")]
@@ -517,6 +568,11 @@ pub(crate) struct AppSettings {
         rename = "usageShowRemaining"
     )]
     pub(crate) usage_show_remaining: bool,
+    #[serde(
+        default = "default_show_message_file_path",
+        rename = "showMessageFilePath"
+    )]
+    pub(crate) show_message_file_path: bool,
     #[serde(default = "default_ui_font_family", rename = "uiFontFamily")]
     pub(crate) ui_font_family: String,
     #[serde(default = "default_code_font_family", rename = "codeFontFamily")]
@@ -639,7 +695,7 @@ pub(crate) enum BackendMode {
 
 impl Default for BackendMode {
     fn default() -> Self {
-        BackendMode::Local
+        default_backend_mode()
     }
 }
 
@@ -656,25 +712,20 @@ impl Default for RemoteBackendProvider {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum OrbitDeploymentMode {
-    Hosted,
-    SelfHosted,
-}
-
-impl Default for OrbitDeploymentMode {
-    fn default() -> Self {
-        OrbitDeploymentMode::Hosted
-    }
-}
-
 fn default_access_mode() -> String {
     "current".to_string()
 }
 
 fn default_review_delivery_mode() -> String {
     "inline".to_string()
+}
+
+fn default_backend_mode() -> BackendMode {
+    if cfg!(target_os = "ios") {
+        BackendMode::Remote
+    } else {
+        BackendMode::Local
+    }
 }
 
 fn default_remote_backend_host() -> String {
@@ -695,6 +746,10 @@ fn default_usage_show_remaining() -> bool {
 
 fn default_ui_language() -> String {
     "system".to_string()
+}
+
+fn default_show_message_file_path() -> bool {
+    true
 }
 
 fn default_ui_font_family() -> String {
@@ -1074,11 +1129,10 @@ impl Default for AppSettings {
         Self {
             codex_bin: None,
             codex_args: None,
-            backend_mode: BackendMode::Local,
+            backend_mode: default_backend_mode(),
             remote_backend_provider: RemoteBackendProvider::Tcp,
             remote_backend_host: default_remote_backend_host(),
             remote_backend_token: None,
-            orbit_deployment_mode: OrbitDeploymentMode::Hosted,
             orbit_ws_url: None,
             orbit_auth_url: None,
             orbit_runner_name: None,
@@ -1111,6 +1165,7 @@ impl Default for AppSettings {
             theme: default_theme(),
             ui_language: default_ui_language(),
             usage_show_remaining: default_usage_show_remaining(),
+            show_message_file_path: default_show_message_file_path(),
             ui_font_family: default_ui_font_family(),
             code_font_family: default_code_font_family(),
             code_font_size: default_code_font_size(),
@@ -1149,25 +1204,30 @@ impl Default for AppSettings {
 #[cfg(test)]
 mod tests {
     use super::{
-        AppSettings, BackendMode, OrbitDeploymentMode, RemoteBackendProvider, WorkspaceEntry,
-        WorkspaceGroup, WorkspaceKind, WorkspaceSettings,
+        AppSettings, BackendMode, RemoteBackendProvider, WorkspaceEntry, WorkspaceGroup,
+        WorkspaceKind, WorkspaceSettings,
     };
 
     #[test]
     fn app_settings_defaults_from_empty_json() {
         let settings: AppSettings = serde_json::from_str("{}").expect("settings deserialize");
         assert!(settings.codex_bin.is_none());
-        assert!(matches!(settings.backend_mode, BackendMode::Local));
+        let expected_backend_mode = if cfg!(target_os = "ios") {
+            BackendMode::Remote
+        } else {
+            BackendMode::Local
+        };
+        assert!(matches!(
+            (&settings.backend_mode, &expected_backend_mode),
+            (BackendMode::Local, BackendMode::Local)
+                | (BackendMode::Remote, BackendMode::Remote)
+        ));
         assert!(matches!(
             settings.remote_backend_provider,
             RemoteBackendProvider::Tcp
         ));
         assert_eq!(settings.remote_backend_host, "127.0.0.1:4732");
         assert!(settings.remote_backend_token.is_none());
-        assert!(matches!(
-            settings.orbit_deployment_mode,
-            OrbitDeploymentMode::Hosted
-        ));
         assert!(settings.orbit_ws_url.is_none());
         assert!(settings.orbit_auth_url.is_none());
         assert!(settings.orbit_runner_name.is_none());
@@ -1266,6 +1326,7 @@ mod tests {
         assert_eq!(settings.theme, "system");
         assert_eq!(settings.ui_language, "system");
         assert!(!settings.usage_show_remaining);
+        assert!(settings.show_message_file_path);
         assert!(settings.ui_font_family.contains("system-ui"));
         assert!(settings.code_font_family.contains("ui-monospace"));
         assert_eq!(settings.code_font_size, 11);

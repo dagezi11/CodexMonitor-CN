@@ -1,4 +1,4 @@
-# Mistakes
+﻿# Mistakes
 
 ## Entry Template
 
@@ -82,21 +82,202 @@ Root cause: Remote client cache lifecycle was only tied to disconnect/errors, no
 Fix applied: Updated `src-tauri/src/settings/mod.rs` to compare previous vs updated transport settings and reset cached remote backend when they differ; added predicate unit tests.
 Prevention rule: Treat transport-config settings as cache keys and invalidate on change at the backend boundary, not only from UI handlers.
 
+## 2026-02-07 20:36
+Context: Orbit token sync persistence retry behavior in Settings
+Type: mistake
+Event: `syncRemoteBackendToken` updated `latestSettingsRef` before settings persistence succeeded, so a failed save could make later retries no-op.
+Action: Moved `latestSettingsRef` mutation to after successful `onUpdateAppSettings` completion and added a regression test for retry-after-failure.
+Rule: In async settings flows, only advance local "latest" refs after persistence succeeds.
+Root cause: Optimistically mutating in-memory settings state before awaiting durable save.
+Fix applied: Updated `src/features/settings/components/SettingsView.tsx` token sync ordering and added `retries Orbit token persistence after a failed save` in `src/features/settings/components/SettingsView.test.tsx`.
+Prevention rule: Keep optimistic UI drafts separate from persisted-settings refs and add explicit retry-path tests for async save failures.
+
+## 2026-02-07 21:01
+Context: Tailscale settings helper token preview freshness
+Type: mistake
+Event: Tailscale daemon command preview did not auto-refresh after remote token changes, leaving `tokenConfigured` warning state stale until manual refresh.
+Action: Added `appSettings.remoteBackendToken` as a dependency of the auto-refresh effect in `SettingsView` so preview data is recomputed after token edits.
+Rule: Any derived helper output that depends on settings values must include those values in effect dependencies (or equivalent invalidation paths).
+Root cause: The effect dependency list tracked provider/mode only and omitted token changes used by preview generation.
+Fix applied: Updated `src/features/settings/components/SettingsView.tsx` effect dependencies and revalidated `SettingsView` tests.
+Prevention rule: When adding helper panels, explicitly audit dependency arrays against all backend inputs shown in that panel (especially token/auth state).
+
+## 2026-02-07 21:03
+Context: Tailscale helper auto-preview on mobile
+Type: mistake
+Event: Settings auto-fetched desktop-only Tailscale daemon command preview on mobile, creating immediate unsupported-error noise.
+Action: Added `isMobilePlatform` helper and gated auto preview fetch in `SettingsView` to desktop platforms only.
+Rule: Do not auto-run desktop-only diagnostics on mobile surfaces; gate by platform first.
+Root cause: Auto-refresh effect was scoped by provider/mode only and assumed desktop capabilities.
+Fix applied: Updated `src/features/settings/components/SettingsView.tsx` effect logic and added `src/utils/platformPaths.test.ts` coverage for mobile detection.
+Prevention rule: For any auto-run settings helper, explicitly classify desktop-only vs cross-platform behavior before wiring useEffect refreshes.
+
+## 2026-02-07 21:09
+Context: Messages auto-scroll regression follow-up (thread switch)
+Type: mistake
+Event: Converting the auto-scroll effect to `useLayoutEffect` introduced an ordering bug where thread switches could skip initial re-pin if the previous thread was scrolled up.
+Action: Switched thread-change `autoScrollRef` reset to `useLayoutEffect`, added `threadId` to auto-scroll layout effect dependencies, and added a regression test for thread-switch re-pin behavior.
+Rule: When converting effects between `useEffect` and `useLayoutEffect`, preserve ordering guarantees for dependent refs across thread/navigation boundaries.
+Root cause: `autoScrollRef.current = true` still ran in `useEffect` after the new layout scroll pass, so first render on thread switch could evaluate stale `false`.
+Fix applied: Updated `src/features/messages/components/Messages.tsx` hook ordering/dependencies and added `re-pins to bottom on thread switch even when previous thread was scrolled up` in `src/features/messages/components/Messages.test.tsx`.
+Prevention rule: For scroll/anchor refs, pair layout-timing ref resets with layout-timing consumers and add regression coverage for cross-thread transitions.
+
+## 2026-02-07 21:14
+Context: CI `test-js` failure (`platformPaths.test.ts`)
+Type: mistake
+Event: New mobile platform tests mutated `navigator` directly without ensuring a `navigator` object exists in Node test environments.
+Action: Updated `withNavigatorValues` in `src/utils/platformPaths.test.ts` to create a temporary `globalThis.navigator` shim when missing, restore descriptors after each test, and clean up with `Reflect.deleteProperty`.
+Rule: Node-targeted unit tests must not assume browser globals exist; create and tear down explicit shims in helper setup.
+Root cause: The tests were authored assuming `navigator` is always available, but Vitest runs with `environment: node` in CI.
+Fix applied: Added a global-scope navigator shim path and descriptor-safe restore logic in `src/utils/platformPaths.test.ts`.
+Prevention rule: For tests that patch `navigator`, `window`, or `document`, guard setup with `typeof ... === \"undefined\"` and perform full teardown in `finally`.
+
+## 2026-02-07 21:16
+Context: Tailscale CLI detection from GUI app runtime
+Type: mistake
+Event: Tailscale detection relied on `PATH` only, which can differ from shell aliases and fail in Tauri GUI runtime.
+Action: Added binary resolution fallback candidates (including macOS app bundle path) before reporting CLI missing.
+Rule: For desktop-integrated CLIs, resolve from PATH plus standard install locations; do not assume shell alias/path propagation.
+Root cause: Implementation assumed the app process inherits the same shell PATH/aliases as user terminal sessions.
+Fix applied: Updated `src-tauri/src/tailscale/mod.rs` to probe candidate binaries and execute status/version via resolved path.
+Prevention rule: Any new CLI integration in Tauri should include explicit path fallback logic and a test for candidate list coverage.
+
+## 2026-02-08 06:34
+Context: TCP mobile daemon status metadata refresh
+Type: mistake
+Event: `tailscale_daemon_status` only updated `listen_addr` when it was `None`, so stopped/error states could show stale listen ports after settings changes.
+Action: Added a shared `sync_tcp_daemon_listen_addr` helper and used it in both status and stop paths; added unit tests for stopped-vs-running behavior.
+Rule: Non-running daemon status responses must re-sync listen metadata from current settings.
+Root cause: Status handler treated listen address as immutable cached state rather than configuration-derived metadata for stopped/error states.
+Fix applied: `src-tauri/src/tailscale/mod.rs` now refreshes listen addr unless daemon is actively running with a known bind, and tests cover both branches.
+Prevention rule: Any status endpoint that reports config-derived fields should recompute those fields on refresh when runtime state is inactive.
+
+## 2026-02-08 06:39
+Context: Tailscale preflight test implementation
+Type: mistake
+Event: Added `#[tokio::test]` in a crate configuration where Tokio test macros are not enabled, causing compile failure.
+Action: Replaced macro usage with a standard `#[test]` and an explicit current-thread Tokio runtime in the test body.
+Rule: In this repo, use explicit runtime-backed tests unless Tokio test-macro support is confirmed enabled.
+Root cause: Assumed Tokio test-macro feature availability from runtime dependency alone.
+Fix applied: Updated the test to build a runtime manually in `src-tauri/src/tailscale/mod.rs`.
+Prevention rule: Prefer `runtime.block_on(...)` for async unit tests in `src-tauri` modules unless existing files already use `#[tokio::test]`.
+
+## 2026-02-08 07:49
+Context: iOS mobile shell viewport/safe-area behavior
+Type: mistake
+Event: A `100dvh` height change for iOS caused bottom tab bar lift/gap while the phone shell still lacked top safe-area inset, creating status-bar overlap.
+Action: Reverted app/root height to `100vh` and added top safe-area padding on phone compact shell.
+Rule: For Tauri iOS webviews, do not switch root container height units without validating safe-area behavior on-device/simulator.
+Root cause: Assumed Safari-style `dvh` behavior would improve iOS viewport stability in WKWebView.
+Fix applied: Updated `src/styles/base.css` and `src/styles/compact-phone.css` for stable phone shell geometry.
+Prevention rule: Validate both status-bar overlap and tab-bar bottom alignment after any viewport/meta/height CSS change.
+
+## 2026-02-08 07:47
+Context: iOS compact layout tab bar visibility
+Type: mistake
+Event: On iOS, pinch-zoom and viewport sizing let the compact tab bar render outside the visible area.
+Action: Forced phone layout on mobile runtime, disabled mobile pinch gestures, and switched root/app height to dynamic viewport units.
+Rule: Mobile shells must use stable non-zooming viewport behavior and `dvh` sizing to keep fixed navigation visible.
+Root cause: Width-only layout detection and `100vh` sizing were combined with zoomable WebView behavior.
+Fix applied: Updated `src/features/layout/hooks/useLayoutMode.ts`, `index.html`, `src/main.tsx`, and `src/styles/base.css`.
+Prevention rule: For iOS/Tauri webview flows, always validate pinch-zoom behavior and bottom-nav visibility before considering layout complete.
+
+## 2026-02-08 07:49
+Context: iOS viewport unit correction after simulator validation
+Type: mistake
+Event: The earlier `dvh` guidance proved incorrect in WKWebView and produced bottom-gap/tab-bar lift.
+Action: Superseded prior guidance by restoring root/app containers to `100vh` and keeping safe-area handling explicit in shell/tabbar CSS.
+Rule: In this app, prefer `100vh` for root/app on iOS Tauri unless device validation proves a different unit is required.
+Root cause: Over-generalized Safari viewport behavior to Tauri WKWebView runtime.
+Fix applied: Reverted `dvh` usage in `src/styles/base.css` and added safe-area top inset in `src/styles/compact-phone.css`.
+Prevention rule: Treat viewport unit changes as platform-runtime specific and always validate in the target Tauri runtime.
+
+## 2026-02-08 07:50
+Context: iOS tab bar disappearing after viewport changes
+Type: mistake
+Event: A global width media query in `tabbar.css` hid the tab bar for widths above 521px, which can occur on iOS with viewport scaling.
+Action: Removed the width-based hide rule and set tab bar to non-shrinking in the phone shell.
+Rule: Do not use global width-based hide rules for mobile navigation when layout mode already controls rendering.
+Root cause: Legacy responsive CSS conflicted with runtime layout gating and iOS viewport behavior.
+Fix applied: Updated `src/styles/tabbar.css` to keep `.tabbar` always rendered and `flex-shrink: 0`.
+Prevention rule: Scope navigation visibility to explicit layout classes/runtime state rather than coarse viewport breakpoints.
+
+## 2026-02-08 07:54
+Context: iOS layout mode still selecting tablet shell
+Type: mistake
+Event: Even after tab bar CSS fixes, iOS sometimes remained in tablet layout because mobile-platform detection did not cover desktop-style iPad user agents.
+Action: Hardened `isMobilePlatform()` to include mobile UA tokens, touch-point checks, and iPad desktop-mode detection.
+Rule: Mobile runtime gating must account for iPadOS desktop-style UA/platform values.
+Root cause: Detection relied mainly on explicit `iphone`/`ipad` platform strings that are not guaranteed in modern iOS webviews.
+Fix applied: Updated `src/utils/platformPaths.ts` and expanded `src/utils/platformPaths.test.ts` coverage.
+Prevention rule: When using platform detection for layout, include tests for desktop-style iPad UA + touch capability.
+
+## 2026-02-08 07:55
+Context: iOS runtime layout gating reliability
+Type: mistake
+Event: Browser-side UA/touch heuristics remained too brittle for reliable iOS shell selection in Tauri.
+Action: Added backend command `is_mobile_runtime` and made `useLayoutMode` trust runtime platform detection before applying responsive width logic.
+Rule: For platform-critical UI gates in Tauri, prefer backend runtime signals over browser heuristics.
+Root cause: Heuristic detection varied across simulator/device WebView identification.
+Fix applied: Updated `src-tauri/src/lib.rs`, `src/services/tauri.ts`, and `src/features/layout/hooks/useLayoutMode.ts`.
+Prevention rule: Route platform-critical decisions through compile-time/runtime backend authority when available.
+
+## 2026-02-08 08:02
+Context: iOS phone shell bottom navigation clipping
+Type: mistake
+Event: Phone tab bar rendered below the visible iOS webview area even though phone layout was active.
+Action: Bound app/root height to runtime `visualViewport.height` on mobile and switched compact shell sizing from fixed `height: 100%` to flex growth.
+Rule: In Tauri iOS webviews, drive root/app height from runtime viewport metrics, not static `100vh` assumptions.
+Root cause: Static CSS viewport height did not consistently match the visible WKWebView viewport after safe-area and gesture-driven viewport changes.
+Fix applied: Added `syncMobileViewportHeight()` in `src/main.tsx`, updated `src/styles/base.css` to use `--app-height`, and updated `src/styles/compact-base.css` shell sizing.
+Prevention rule: After any iOS viewport/safe-area change, verify both top status-bar clearance and bottom tab bar visibility on simulator/device screenshots.
+
+## 2026-02-08 08:04
+Context: iOS phone shell tab bar bottom anchoring
+Type: mistake
+Event: Mobile viewport sync preferred `visualViewport.height`, which fixed clipping but made the app container slightly shorter than the device viewport, so the tab bar floated above the bottom edge.
+Action: Changed mobile app-height calculation to use the larger of `window.innerHeight` and `visualViewport.height`.
+Rule: On iOS WKWebView, avoid using `visualViewport.height` alone for root layout height.
+Root cause: Assumed `visualViewport.height` matched full renderable app viewport in Tauri iOS.
+Fix applied: Updated `syncMobileViewportHeight` in `src/main.tsx` to compute `--app-height` with `Math.max(window.innerHeight, visualViewport.height ?? 0)`.
+Prevention rule: Treat root viewport sizing as WKWebView-specific and validate both clipping and bottom anchoring before finalizing.
+
+## 2026-02-08 08:15
+Context: Settings modal mobile master/detail rollout
+Type: mistake
+Event: Initial master/detail gating required both mobile-platform detection and narrow width, which made behavior inconsistent in test/runtime scenarios where width was narrow but platform heuristics varied.
+Action: Switched master/detail trigger to a pure viewport-width predicate (`max-width: 720px`) and validated with dedicated Settings mobile-layout tests.
+Rule: For responsive modal navigation, gate layout by viewport constraints unless platform-specific behavior is strictly required.
+Root cause: Over-constrained layout gating mixed platform heuristics into a screen-size-driven UX requirement.
+Fix applied: Updated `SettingsView` layout gating and added regression coverage in `src/features/settings/components/SettingsView.test.tsx`.
+Prevention rule: Align layout triggers directly to UX constraints (width/height) and keep platform checks only for truly platform-specific capability differences.
+
+## 2026-02-08 08:22
+Context: iOS settings modal vertical placement
+Type: mistake
+Event: Mobile settings modal remained visually too high, overlapping status-bar/notch area and making the top navigation feel collapsed.
+Action: Added mobile safe-area-aware modal sizing/offset to shift the settings card lower on narrow viewports.
+Rule: On iOS-style narrow layouts, modal card placement must account for safe-area top inset explicitly.
+Root cause: Centered modal placement used viewport-only geometry without safe-area compensation for notched displays.
+Fix applied: Updated `src/styles/settings.css` mobile rules to include safe-area-aware height and top offset.
+Prevention rule: Validate modal vertical placement against notch/status-bar safe areas whenever mobile modal dimensions or centering behavior change.
+
 ## 2026-02-08 04:02
 Context: i18n 补全执行阶段（批量迁移）
 Type: mistake
 Event: 首次迁移时在 `ApprovalToasts` 里误保留了一份旧标题，导致同一区块渲染双标题。
-Action: 立即删除重复节点并补跑类型检查与组件测试，确认 UI 输出恢复单一文案。
+Action: 删除重复节点并补跑类型检查与组件测试，确认 UI 输出恢复单一文案。
 Rule: 批量替换文案后必须做“重复节点”快速回扫（同 className 同层重复文本）。
-Root cause: 在大块 apply_patch 时新增文案后未同步移除原字面量。
+Root cause: 在大块修改时新增文案后未同步移除原字面量。
 Fix applied: 修复 `src/features/app/components/ApprovalToasts.tsx` 的重复 `ToastTitle`。
-Prevention rule: 文案迁移统一采用“先替换后 grep 旧字面量”的流程，并在提交前运行目标文件差异人工复核。
+Prevention rule: 文案迁移统一采用“先替换后 grep 旧字面量”的流程，并在提交前进行目标文件差异人工复核。
+
 ## 2026-02-08 15:33
 Context: SettingsView Orbit 状态文案迁移
 Type: mistake
-Event: 初次迁移 Orbit 状态逻辑时遗漏 `codex.orbitRunnerStopped` 翻译键，导致 `getOrbitStatusText` 引用的 key 不完整。
-Action: 在 `src/features/i18n/i18n.ts` 补齐 en/zh-CN 的 `orbitRunnerStopped`，并通过 `typecheck + settings/i18n 测试 + 全量测试` 验证。
-Rule: 新增状态映射函数使用 i18n key 后，必须执行“调用 key 反查”确保每个 key 在双语资源中都存在。
-Root cause: 将散落硬编码文本改为集中 key 时，只校验了主流程键，未覆盖到默认分支返回键。
-Fix applied: 增加缺失 key 并加入迁移后 grep 检查步骤。
-Prevention rule: 每次大规模文案迁移后，先 `rg` 检查 key 调用，再运行 typecheck，最后跑目标测试与全量测试。
+Event: 初次迁移 Orbit 状态逻辑时遗漏 `codex.orbitRunnerStopped` 翻译键，导致状态 key 不完整。
+Action: 在 `src/features/i18n/i18n.ts` 补齐 `en/zh-CN` 的 `orbitRunnerStopped`，并通过 typecheck 与相关测试验证。
+Rule: 新增状态映射函数使用 i18n key 后，必须执行“调用 key 反查”确保双语资源齐全。
+Root cause: 集中迁移 key 时只覆盖主流程分支，遗漏默认分支返回 key。
+Fix applied: 增加缺失 key 并加入迁移后 `rg` 反查步骤。
+Prevention rule: 每次大规模文案迁移后先检索 key 调用，再跑 typecheck，最后跑目标测试与全量测试。
