@@ -176,3 +176,9 @@ Context: Fork 同步触发词执行规范
 Type: preference
 Rule: 触发“同步fork”流程时，文档需保持简体中文并同步上游新增内容（去重后汉化）；`memory/` 目录必须保留并持续更新；功能实现以上游为准，仅追加 i18 适配。
 Why: 在不偏离上游主线功能的前提下，持续保障中文可读性与本地记忆机制稳定。
+
+## 2026-02-08 19:31
+Context: Settings i18n wave-2 批量补齐
+Type: decision
+Rule: `src/features/settings/components/sections/*` 与 `SettingsView` 的用户可见文案必须统一走 `useAppTranslation("settings")`，禁止新增硬编码标签/placeholder/aria 文案。
+Why: Settings 面板是 i18n 漏网高发区，统一入口可降低回归并让双语资源可追踪。

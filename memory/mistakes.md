@@ -281,3 +281,13 @@ Rule: 新增状态映射函数使用 i18n key 后，必须执行“调用 key �
 Root cause: 集中迁移 key 时只覆盖主流程分支，遗漏默认分支返回 key。
 Fix applied: 增加缺失 key 并加入迁移后 `rg` 反查步骤。
 Prevention rule: 每次大规模文案迁移后先检索 key 调用，再跑 typecheck，最后跑目标测试与全量测试。
+
+## 2026-02-08 19:31
+Context: Settings Server 按钮文案 key 复用
+Type: mistake
+Event: 将 TCP daemon 的“Refresh status”与 Orbit 的“Refresh Status”共用一个翻译 key，导致 `SettingsView` 相关测试断言失败。
+Action: 新增独立 key `codex.refreshDaemonStatus`，TCP daemon 使用该 key，Orbit 保持 `codex.refreshStatus`。
+Rule: 语义相近但 UX 文案有细微差异（大小写/标点/语气）的控件，不要强行共用同一 key。
+Root cause: 为了减少 key 数量，误把两个不同上下文按钮文案合并。
+Fix applied: 在 `src/features/i18n/i18n.ts` 补充专用 key 并更新 `SettingsServerSection` 调用。
+Prevention rule: i18n 替换后优先跑目标组件测试，若有文案断言失败，优先拆分 key 而非改写全局 key。

@@ -1,4 +1,5 @@
 import type { AppSettings } from "../../../../types";
+import { useAppTranslation } from "../../../i18n/i18n";
 
 type SettingsGitSectionProps = {
   appSettings: AppSettings;
@@ -9,16 +10,18 @@ export function SettingsGitSection({
   appSettings,
   onUpdateAppSettings,
 }: SettingsGitSectionProps) {
+  const { t } = useAppTranslation("settings");
+
   return (
     <section className="settings-section">
-      <div className="settings-section-title">Git</div>
+      <div className="settings-section-title">{t("git.title")}</div>
       <div className="settings-section-subtitle">
-        Manage how diffs are loaded in the Git sidebar.
+        {t("git.subtitle")}
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Preload git diffs</div>
-          <div className="settings-toggle-subtitle">Make viewing git diff faster.</div>
+          <div className="settings-toggle-title">{t("git.preloadDiffsTitle")}</div>
+          <div className="settings-toggle-subtitle">{t("git.preloadDiffsSubtitle")}</div>
         </div>
         <button
           type="button"
@@ -36,9 +39,9 @@ export function SettingsGitSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Ignore whitespace changes</div>
+          <div className="settings-toggle-title">{t("git.ignoreWhitespaceTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Hides whitespace-only changes in local and commit diffs.
+            {t("git.ignoreWhitespaceSubtitle")}
           </div>
         </div>
         <button

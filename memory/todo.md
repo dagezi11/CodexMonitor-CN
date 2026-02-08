@@ -5,7 +5,7 @@
 - [ ] 2026-02-07: Harden Orbit WS transport with explicit reconnect/backoff + replay/resync handling for mobile reconnect flows.
 - [ ] 2026-02-07: Complete Orbit production readiness gaps after baseline wiring: secure secret storage (Keychain/keyring), LaunchAgent/background runner management, pairing QR/code UX, and app-side Orbit reconnect/resync handling.
 - [ ] 2026-02-07: Build iOS-side remote onboarding UI that can consume the new Tailscale bootstrap outputs (status hints + daemon command + host/token handoff).
-- [ ] 2026-02-08: Continue i18n wave-2 migration for remaining heavy modules (`SettingsView`, `GitDiffPanel`, `PromptPanel`, `WorkspaceHome`, `GitDiffViewer`, `Messages`) and remove residual hardcoded UI strings.
+- [ ] 2026-02-08: Continue i18n wave-2 migration for remaining heavy modules (`GitDiffPanel`, `PromptPanel`, `WorkspaceHome`, `GitDiffViewer`, `Messages`) and remove residual hardcoded UI strings.
 
 ## Done
 - [x] 2026-02-07: Restored Sentry frontend reporting removed in `83a37da` (`@sentry/react`, `Sentry.init`, captureException callsites, and metrics instrumentation).

@@ -1,5 +1,6 @@
 import type { AppSettings, DictationModelStatus } from "../../../../types";
 import { formatDownloadSize } from "../../../../utils/formatting";
+import { useAppTranslation } from "../../../i18n/i18n";
 
 type DictationModelOption = {
   id: string;
@@ -35,19 +36,20 @@ export function SettingsDictationSection({
   onCancelDictationDownload,
   onRemoveDictationModel,
 }: SettingsDictationSectionProps) {
+  const { t } = useAppTranslation("settings");
   const dictationProgress = dictationModelStatus?.progress ?? null;
 
   return (
     <section className="settings-section">
-      <div className="settings-section-title">Dictation</div>
+      <div className="settings-section-title">{t("dictation.title")}</div>
       <div className="settings-section-subtitle">
-        Enable microphone dictation with on-device transcription.
+        {t("dictation.subtitle")}
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Enable dictation</div>
+          <div className="settings-toggle-title">{t("dictation.enableTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Downloads the selected Whisper model on first use.
+            {t("dictation.enableSubtitle")}
           </div>
         </div>
         <button
@@ -81,7 +83,7 @@ export function SettingsDictationSection({
       </div>
       <div className="settings-field">
         <label className="settings-field-label" htmlFor="dictation-model">
-          Dictation model
+          {t("dictation.model")}
         </label>
         <select
           id="dictation-model"
@@ -101,12 +103,12 @@ export function SettingsDictationSection({
           ))}
         </select>
         <div className="settings-help">
-          {selectedDictationModel.note} Download size: {selectedDictationModel.size}.
+          {selectedDictationModel.note} {t("dictation.downloadSize")} {selectedDictationModel.size}.
         </div>
       </div>
       <div className="settings-field">
         <label className="settings-field-label" htmlFor="dictation-language">
-          Preferred dictation language
+          {t("dictation.preferredLanguage")}
         </label>
         <select
           id="dictation-language"
@@ -119,33 +121,33 @@ export function SettingsDictationSection({
             })
           }
         >
-          <option value="">Auto-detect only</option>
-          <option value="en">English</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
-          <option value="de">German</option>
-          <option value="it">Italian</option>
-          <option value="pt">Portuguese</option>
-          <option value="nl">Dutch</option>
-          <option value="sv">Swedish</option>
-          <option value="no">Norwegian</option>
-          <option value="da">Danish</option>
-          <option value="fi">Finnish</option>
-          <option value="pl">Polish</option>
-          <option value="tr">Turkish</option>
-          <option value="ru">Russian</option>
-          <option value="uk">Ukrainian</option>
-          <option value="ja">Japanese</option>
-          <option value="ko">Korean</option>
-          <option value="zh">Chinese</option>
+          <option value="">{t("dictation.autoDetectOnly")}</option>
+          <option value="en">{t("dictation.languages.en")}</option>
+          <option value="es">{t("dictation.languages.es")}</option>
+          <option value="fr">{t("dictation.languages.fr")}</option>
+          <option value="de">{t("dictation.languages.de")}</option>
+          <option value="it">{t("dictation.languages.it")}</option>
+          <option value="pt">{t("dictation.languages.pt")}</option>
+          <option value="nl">{t("dictation.languages.nl")}</option>
+          <option value="sv">{t("dictation.languages.sv")}</option>
+          <option value="no">{t("dictation.languages.no")}</option>
+          <option value="da">{t("dictation.languages.da")}</option>
+          <option value="fi">{t("dictation.languages.fi")}</option>
+          <option value="pl">{t("dictation.languages.pl")}</option>
+          <option value="tr">{t("dictation.languages.tr")}</option>
+          <option value="ru">{t("dictation.languages.ru")}</option>
+          <option value="uk">{t("dictation.languages.uk")}</option>
+          <option value="ja">{t("dictation.languages.ja")}</option>
+          <option value="ko">{t("dictation.languages.ko")}</option>
+          <option value="zh">{t("dictation.languages.zh")}</option>
         </select>
         <div className="settings-help">
-          Auto-detect stays on; this nudges the decoder toward your preference.
+          {t("dictation.preferredLanguageHelp")}
         </div>
       </div>
       <div className="settings-field">
         <label className="settings-field-label" htmlFor="dictation-hold-key">
-          Hold-to-dictate key
+          {t("dictation.holdKey")}
         </label>
         <select
           id="dictation-hold-key"
@@ -158,25 +160,27 @@ export function SettingsDictationSection({
             })
           }
         >
-          <option value="">Off</option>
+          <option value="">{t("dictation.keyOff")}</option>
           <option value="alt">{optionKeyLabel}</option>
-          <option value="shift">Shift</option>
-          <option value="control">Control</option>
+          <option value="shift">{t("dictation.keyShift")}</option>
+          <option value="control">{t("dictation.keyControl")}</option>
           <option value="meta">{metaKeyLabel}</option>
         </select>
         <div className="settings-help">
-          Hold the key to start dictation, release to stop and process.
+          {t("dictation.holdKeyHelp")}
         </div>
       </div>
       {dictationModelStatus && (
         <div className="settings-field">
-          <div className="settings-field-label">Model status ({selectedDictationModel.label})</div>
+          <div className="settings-field-label">
+            {t("dictation.modelStatus", { label: selectedDictationModel.label })}
+          </div>
           <div className="settings-help">
-            {dictationModelStatus.state === "ready" && "Ready for dictation."}
-            {dictationModelStatus.state === "missing" && "Model not downloaded yet."}
-            {dictationModelStatus.state === "downloading" && "Downloading model..."}
+            {dictationModelStatus.state === "ready" && t("dictation.statusReady")}
+            {dictationModelStatus.state === "missing" && t("dictation.statusMissing")}
+            {dictationModelStatus.state === "downloading" && t("dictation.statusDownloading")}
             {dictationModelStatus.state === "error" &&
-              (dictationModelStatus.error ?? "Download error.")}
+              (dictationModelStatus.error ?? t("dictation.statusError"))}
           </div>
           {dictationProgress && (
             <div className="settings-download-progress">
@@ -206,7 +210,7 @@ export function SettingsDictationSection({
                 onClick={onDownloadDictationModel}
                 disabled={!onDownloadDictationModel}
               >
-                Download model
+                {t("dictation.downloadModel")}
               </button>
             )}
             {dictationModelStatus.state === "downloading" && (
@@ -216,7 +220,7 @@ export function SettingsDictationSection({
                 onClick={onCancelDictationDownload}
                 disabled={!onCancelDictationDownload}
               >
-                Cancel download
+                {t("dictation.cancelDownload")}
               </button>
             )}
             {dictationReady && (
@@ -226,7 +230,7 @@ export function SettingsDictationSection({
                 onClick={onRemoveDictationModel}
                 disabled={!onRemoveDictationModel}
               >
-                Remove model
+                {t("dictation.removeModel")}
               </button>
             )}
           </div>

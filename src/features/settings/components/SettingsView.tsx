@@ -73,13 +73,13 @@ import { SettingsServerSection } from "./sections/SettingsServerSection";
 import { SettingsFeaturesSection } from "./sections/SettingsFeaturesSection";
 import { useAppTranslation } from "../../i18n/i18n";
 
-const DICTATION_MODELS = [
-  { id: "tiny", label: "Tiny", size: "75 MB", note: "Fastest, least accurate." },
-  { id: "base", label: "Base", size: "142 MB", note: "Balanced default." },
-  { id: "small", label: "Small", size: "466 MB", note: "Better accuracy." },
-  { id: "medium", label: "Medium", size: "1.5 GB", note: "High accuracy." },
-  { id: "large-v3", label: "Large V3", size: "3.0 GB", note: "Best accuracy, heavy download." },
-];
+const DICTATION_MODEL_DEFS = [
+  { id: "tiny", i18nKey: "tiny", size: "75 MB" },
+  { id: "base", i18nKey: "base", size: "142 MB" },
+  { id: "small", i18nKey: "small", size: "466 MB" },
+  { id: "medium", i18nKey: "medium", size: "1.5 GB" },
+  { id: "large-v3", i18nKey: "largeV3", size: "3.0 GB" },
+] as const;
 
 type ComposerPreset = AppSettings["composerEditorPreset"];
 
@@ -94,12 +94,6 @@ type ComposerPresetSettings = Pick<
   | "composerListContinuation"
   | "composerCodeBlockCopyUseModifier"
 >;
-
-const COMPOSER_PRESET_LABELS: Record<ComposerPreset, string> = {
-  default: "Default (no helpers)",
-  helpful: "Helpful",
-  smart: "Smart",
-};
 
 const COMPOSER_PRESET_CONFIGS: Record<ComposerPreset, ComposerPresetSettings> = {
   default: {
@@ -190,56 +184,6 @@ type OrbitActionResult =
   | OrbitSignInPollResult
   | OrbitSignOutResult
   | OrbitRunnerStatus;
-
-const getOrbitStatusText = (value: OrbitActionResult, fallback: string): string => {
-  if ("ok" in value) {
-    if (!value.ok) {
-      return value.message || fallback;
-    }
-    if (value.message.trim()) {
-      return value.message;
-    }
-    if (typeof value.latencyMs === "number") {
-      return `Connected to Orbit relay in ${value.latencyMs}ms.`;
-    }
-    return fallback;
-  }
-
-  if ("status" in value) {
-    if (value.message && value.message.trim()) {
-      return value.message;
-    }
-    switch (value.status) {
-      case "pending":
-        return "Waiting for Orbit sign-in authorization.";
-      case "authorized":
-        return "Orbit sign in complete.";
-      case "denied":
-        return "Orbit sign in denied.";
-      case "expired":
-        return "Orbit sign in code expired.";
-      case "error":
-        return "Orbit sign in failed.";
-      default:
-        return fallback;
-    }
-  }
-
-  if ("success" in value) {
-    if (!value.success && value.message && value.message.trim()) {
-      return value.message;
-    }
-    return value.success ? "Signed out from Orbit." : fallback;
-  }
-
-  if (value.state === "running") {
-    return value.pid ? `Orbit runner is running (pid ${value.pid}).` : "Orbit runner is running.";
-  }
-  if (value.state === "error") {
-    return value.lastError?.trim() || "Orbit runner is in error state.";
-  }
-  return "Orbit runner is stopped.";
-};
 
 export type SettingsViewProps = {
   workspaceGroups: WorkspaceGroup[];
@@ -382,6 +326,78 @@ export function SettingsView({
   orbitServiceClient = orbitServices,
 }: SettingsViewProps) {
   const { t } = useAppTranslation("settings");
+  const composerPresetLabels = useMemo<Record<ComposerPreset, string>>(
+    () => ({
+      default: t("composer.presets.defaultLabel"),
+      helpful: t("composer.presets.helpfulLabel"),
+      smart: t("composer.presets.smartLabel"),
+    }),
+    [t],
+  );
+  const dictationModels = useMemo(
+    () =>
+      DICTATION_MODEL_DEFS.map((model) => ({
+        id: model.id,
+        size: model.size,
+        label: t(`dictation.models.${model.i18nKey}.label`),
+        note: t(`dictation.models.${model.i18nKey}.note`),
+      })),
+    [t],
+  );
+  const getOrbitStatusText = useCallback(
+    (value: OrbitActionResult, fallback: string): string => {
+      if ("ok" in value) {
+        if (!value.ok) {
+          return value.message || fallback;
+        }
+        if (value.message.trim()) {
+          return value.message;
+        }
+        if (typeof value.latencyMs === "number") {
+          return t("codex.orbitConnectedLatency", { latencyMs: value.latencyMs });
+        }
+        return fallback;
+      }
+
+      if ("status" in value) {
+        if (value.message && value.message.trim()) {
+          return value.message;
+        }
+        switch (value.status) {
+          case "pending":
+            return t("codex.orbitSignInPending");
+          case "authorized":
+            return t("codex.orbitSignInComplete");
+          case "denied":
+            return t("codex.orbitSignInDenied");
+          case "expired":
+            return t("codex.orbitSignInCodeExpired");
+          case "error":
+            return t("codex.orbitSignInFailed");
+          default:
+            return fallback;
+        }
+      }
+
+      if ("success" in value) {
+        if (!value.success && value.message && value.message.trim()) {
+          return value.message;
+        }
+        return value.success ? t("codex.orbitSignedOut") : fallback;
+      }
+
+      if (value.state === "running") {
+        return value.pid
+          ? t("codex.orbitRunnerRunningWithPid", { pid: value.pid })
+          : t("codex.orbitRunnerRunning");
+      }
+      if (value.state === "error") {
+        return value.lastError?.trim() || t("codex.orbitRunnerErrorState");
+      }
+      return t("codex.orbitRunnerStopped");
+    },
+    [t],
+  );
   const [activeSection, setActiveSection] = useState<CodexSection>("projects");
   const [environmentWorkspaceId, setEnvironmentWorkspaceId] = useState<string | null>(
     null,
@@ -517,39 +533,39 @@ export function SettingsView({
   const latestSettingsRef = useRef(appSettings);
   const dictationReady = dictationModelStatus?.state === "ready";
   const globalAgentsStatus = globalAgentsLoading
-    ? "Loading…"
+    ? t("codex.statusLoading")
     : globalAgentsSaving
-      ? "Saving…"
+      ? t("codex.statusSaving")
       : globalAgentsExists
         ? ""
-        : "Not found";
+        : t("codex.statusNotFound");
   const globalAgentsMetaParts: string[] = [];
   if (globalAgentsStatus) {
     globalAgentsMetaParts.push(globalAgentsStatus);
   }
   if (globalAgentsTruncated) {
-    globalAgentsMetaParts.push("Truncated");
+    globalAgentsMetaParts.push(t("codex.statusTruncated"));
   }
   const globalAgentsMeta = globalAgentsMetaParts.join(" · ");
-  const globalAgentsSaveLabel = globalAgentsExists ? "Save" : "Create";
+  const globalAgentsSaveLabel = globalAgentsExists ? t("codex.save") : t("codex.create");
   const globalAgentsSaveDisabled = globalAgentsLoading || globalAgentsSaving || !globalAgentsDirty;
   const globalAgentsRefreshDisabled = globalAgentsLoading || globalAgentsSaving;
   const globalConfigStatus = globalConfigLoading
-    ? "Loading…"
+    ? t("codex.statusLoading")
     : globalConfigSaving
-      ? "Saving…"
+      ? t("codex.statusSaving")
       : globalConfigExists
         ? ""
-        : "Not found";
+        : t("codex.statusNotFound");
   const globalConfigMetaParts: string[] = [];
   if (globalConfigStatus) {
     globalConfigMetaParts.push(globalConfigStatus);
   }
   if (globalConfigTruncated) {
-    globalConfigMetaParts.push("Truncated");
+    globalConfigMetaParts.push(t("codex.statusTruncated"));
   }
   const globalConfigMeta = globalConfigMetaParts.join(" · ");
-  const globalConfigSaveLabel = globalConfigExists ? "Save" : "Create";
+  const globalConfigSaveLabel = globalConfigExists ? t("codex.save") : t("codex.create");
   const globalConfigSaveDisabled = globalConfigLoading || globalConfigSaving || !globalConfigDirty;
   const globalConfigRefreshDisabled = globalConfigLoading || globalConfigSaving;
   const optionKeyLabel = isMacPlatform() ? "Option" : "Alt";
@@ -560,11 +576,11 @@ export function SettingsView({
       : "Meta";
   const selectedDictationModel = useMemo(() => {
     return (
-      DICTATION_MODELS.find(
+      dictationModels.find(
         (model) => model.id === appSettings.dictationModelId,
-      ) ?? DICTATION_MODELS[1]
+      ) ?? dictationModels[1]
     );
-  }, [appSettings.dictationModelId]);
+  }, [appSettings.dictationModelId, dictationModels]);
 
   const projects = useMemo(
     () => groupedWorkspaces.flatMap((group) => group.workspaces),
@@ -735,10 +751,10 @@ export function SettingsView({
       await revealItemInDir(configPath);
     } catch (error) {
       setOpenConfigError(
-        error instanceof Error ? error.message : "Unable to open config.",
+        error instanceof Error ? error.message : t("features.openConfigError"),
       );
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setCodexBinOverrideDrafts((prev) =>
@@ -962,7 +978,7 @@ export function SettingsView({
           const nextOrbitWsUrl = normalizeOverrideValue(orbitWsUrlDraft);
           setOrbitWsUrlDraft(nextOrbitWsUrl ?? "");
           if (!nextOrbitWsUrl) {
-            throw new Error("Orbit websocket URL is required.");
+            throw new Error(t("codex.orbitWebsocketRequired"));
           }
           await updateRemoteBackendSettings({
             token: nextToken,
@@ -971,15 +987,12 @@ export function SettingsView({
         }
         const workspaces = await listWorkspaces();
         const workspaceCount = workspaces.length;
-        const workspaceWord = workspaceCount === 1 ? "workspace" : "workspaces";
-        setMobileConnectStatusText(
-          `Connected. ${workspaceCount} ${workspaceWord} reachable on the remote backend.`,
-        );
+        setMobileConnectStatusText(t("codex.mobileSetupConnectedCount", { count: workspaceCount }));
         await onMobileConnectSuccess?.();
       } catch (error) {
         setMobileConnectStatusError(true);
         setMobileConnectStatusText(
-          error instanceof Error ? error.message : "Unable to connect to remote backend.",
+          error instanceof Error ? error.message : t("codex.mobileSetupConnectFallback"),
         );
       } finally {
         setMobileConnectBusy(false);
@@ -1021,13 +1034,13 @@ export function SettingsView({
         setTailscaleStatus(status);
       } catch (error) {
         setTailscaleStatusError(
-          error instanceof Error ? error.message : "Unable to load Tailscale status.",
+          error instanceof Error ? error.message : t("codex.tailscaleStatusLoadError"),
         );
       } finally {
         setTailscaleStatusBusy(false);
       }
     })();
-  }, []);
+  }, [t]);
 
   const handleRefreshTailscaleCommandPreview = useCallback(() => {
     void (async () => {
@@ -1040,13 +1053,13 @@ export function SettingsView({
         setTailscaleCommandError(
           error instanceof Error
             ? error.message
-            : "Unable to build Tailscale daemon command.",
+            : t("codex.tailscaleCommandPreviewError"),
         );
       } finally {
         setTailscaleCommandBusy(false);
       }
     })();
-  }, []);
+  }, [t]);
 
   const handleUseSuggestedTailscaleHost = async () => {
     const suggestedHost = tailscaleStatus?.suggestedRemoteHost ?? null;
@@ -1071,7 +1084,7 @@ export function SettingsView({
             ? error.message
             : typeof error === "string"
               ? error
-              : "Unable to update mobile access daemon status.";
+              : t("codex.tcpDaemonStatusUpdateError");
         setTcpDaemonStatus((prev) => ({
           state: "error",
           pid: null,
@@ -1083,7 +1096,7 @@ export function SettingsView({
         setTcpDaemonBusyAction(null);
       }
     },
-    [],
+    [t],
   );
 
   const handleTcpDaemonStart = useCallback(async () => {
@@ -1161,14 +1174,14 @@ export function SettingsView({
     successFallback: string,
   ): Promise<T | null> => {
     setOrbitBusyAction(actionKey);
-    setOrbitStatusText(`${actionLabel}...`);
+    setOrbitStatusText(t("codex.orbitActionInProgress", { actionLabel }));
     try {
       const result = await action();
       setOrbitStatusText(getOrbitStatusText(result, successFallback));
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown Orbit error";
-      setOrbitStatusText(`${actionLabel} failed: ${message}`);
+      const message = error instanceof Error ? error.message : t("codex.orbitUnknownError");
+      setOrbitStatusText(t("codex.orbitActionFailed", { actionLabel, message }));
       return null;
     } finally {
       setOrbitBusyAction(null);
@@ -1195,16 +1208,16 @@ export function SettingsView({
   const handleOrbitConnectTest = () => {
     void runOrbitAction(
       "connect-test",
-      "Connect test",
+      t("codex.connectTest"),
       orbitServiceClient.orbitConnectTest,
-      "Orbit connection test succeeded.",
+      t("codex.orbitConnectionTestSucceeded"),
     );
   };
 
   const handleOrbitSignIn = () => {
     void (async () => {
       setOrbitBusyAction("sign-in");
-      setOrbitStatusText("Starting Orbit sign in...");
+      setOrbitStatusText(t("codex.orbitSignInStarting"));
       setOrbitAuthCode(null);
       setOrbitVerificationUrl(null);
       try {
@@ -1213,9 +1226,7 @@ export function SettingsView({
         setOrbitVerificationUrl(
           startResult.verificationUriComplete ?? startResult.verificationUri,
         );
-        setOrbitStatusText(
-          "Orbit sign in started. Finish authorization in the browser window, then keep this dialog open while we poll for completion.",
-        );
+        setOrbitStatusText(t("codex.orbitSignInStarted"));
 
         const maxPollWindowSeconds = Math.max(
           1,
@@ -1233,7 +1244,7 @@ export function SettingsView({
             startResult.deviceCode,
           );
           setOrbitStatusText(
-            getOrbitStatusText(pollResult, "Orbit sign in status refreshed."),
+            getOrbitStatusText(pollResult, t("codex.orbitSignInStatusRefreshed")),
           );
 
           if (pollResult.status === "pending") {
@@ -1251,12 +1262,15 @@ export function SettingsView({
           return;
         }
 
-        setOrbitStatusText(
-          "Orbit sign in is still pending. Leave this window open and try Sign In again if authorization just completed.",
-        );
+        setOrbitStatusText(t("codex.orbitSignInStillPending"));
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown Orbit error";
-        setOrbitStatusText(`Sign In failed: ${message}`);
+        const message = error instanceof Error ? error.message : t("codex.orbitUnknownError");
+        setOrbitStatusText(
+          t("codex.orbitActionFailed", {
+            actionLabel: t("codex.signIn"),
+            message,
+          }),
+        );
       } finally {
         setOrbitBusyAction(null);
       }
@@ -1267,9 +1281,9 @@ export function SettingsView({
     void (async () => {
       const result = await runOrbitAction(
         "sign-out",
-        "Sign Out",
+        t("codex.signOut"),
         orbitServiceClient.orbitSignOut,
-        "Signed out from Orbit.",
+        t("codex.orbitSignedOutFallback"),
       );
       if (result !== null) {
         try {
@@ -1277,8 +1291,13 @@ export function SettingsView({
           setOrbitAuthCode(null);
           setOrbitVerificationUrl(null);
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown Orbit error";
-          setOrbitStatusText(`Sign Out failed: ${message}`);
+          const message = error instanceof Error ? error.message : t("codex.orbitUnknownError");
+          setOrbitStatusText(
+            t("codex.orbitActionFailed", {
+              actionLabel: t("codex.signOut"),
+              message,
+            }),
+          );
         }
       }
     })();
@@ -1287,27 +1306,27 @@ export function SettingsView({
   const handleOrbitRunnerStart = () => {
     void runOrbitAction(
       "runner-start",
-      "Start Runner",
+      t("codex.startRunner"),
       orbitServiceClient.orbitRunnerStart,
-      "Orbit runner started.",
+      t("codex.orbitRunnerStarted"),
     );
   };
 
   const handleOrbitRunnerStop = () => {
     void runOrbitAction(
       "runner-stop",
-      "Stop Runner",
+      t("codex.stopRunner"),
       orbitServiceClient.orbitRunnerStop,
-      "Orbit runner stopped.",
+      t("codex.orbitRunnerStopped"),
     );
   };
 
   const handleOrbitRunnerStatus = () => {
     void runOrbitAction(
       "runner-status",
-      "Refresh Status",
+      t("codex.refreshStatus"),
       orbitServiceClient.orbitRunnerStatus,
-      "Orbit runner status refreshed.",
+      t("codex.orbitRunnerStatusRefreshed"),
     );
   };
 
@@ -1505,7 +1524,7 @@ export function SettingsView({
   const handleAddOpenApp = () => {
     const newTarget: OpenAppDraft = {
       id: createOpenAppId(),
-      label: "New App",
+      label: t("openIn.newAppLabel"),
       kind: "app",
       appName: "",
       command: null,
@@ -1697,15 +1716,15 @@ export function SettingsView({
       groupedWorkspaces.find((entry) => entry.id === group.id)?.workspaces ?? [];
     const detail =
       groupProjects.length > 0
-        ? `\n\nProjects in this group will move to "${ungroupedLabel}".`
+        ? `\n\n${t("projects.deleteGroupMoveNotice", { ungroupedLabel })}`
         : "";
     const confirmed = await ask(
-      `Delete "${group.name}"?${detail}`,
+      `${t("projects.deleteGroupConfirmMessage", { name: group.name })}${detail}`,
       {
-        title: "Delete Group",
+        title: t("projects.deleteGroupConfirmTitle"),
         kind: "warning",
-        okLabel: "Delete",
-        cancelLabel: "Cancel",
+        okLabel: t("projects.deleteGroup"),
+        cancelLabel: t("shell:account.cancel"),
       },
     );
     if (!confirmed) {
@@ -1789,7 +1808,7 @@ export function SettingsView({
                   type="button"
                   className="settings-mobile-back"
                   onClick={() => setShowMobileDetail(false)}
-                  aria-label="Back to settings sections"
+                  aria-label={t("mobileBackAriaLabel")}
                 >
                   <ChevronLeft aria-hidden />
                   {t("mobileBackSections")}
@@ -1866,7 +1885,7 @@ export function SettingsView({
             <SettingsComposerSection
               appSettings={appSettings}
               optionKeyLabel={optionKeyLabel}
-              composerPresetLabels={COMPOSER_PRESET_LABELS}
+              composerPresetLabels={composerPresetLabels}
               onComposerPresetChange={handleComposerPresetChange}
               onUpdateAppSettings={onUpdateAppSettings}
             />
@@ -1876,7 +1895,7 @@ export function SettingsView({
               appSettings={appSettings}
               optionKeyLabel={optionKeyLabel}
               metaKeyLabel={metaKeyLabel}
-              dictationModels={DICTATION_MODELS}
+              dictationModels={dictationModels}
               selectedDictationModel={selectedDictationModel}
               dictationModelStatus={dictationModelStatus}
               dictationReady={dictationReady}

@@ -1,4 +1,5 @@
 import type { AppSettings } from "../../../../types";
+import { useAppTranslation } from "../../../i18n/i18n";
 
 type ComposerPreset = AppSettings["composerEditorPreset"];
 
@@ -17,19 +18,21 @@ export function SettingsComposerSection({
   onComposerPresetChange,
   onUpdateAppSettings,
 }: SettingsComposerSectionProps) {
+  const { t } = useAppTranslation("settings");
+
   return (
     <section className="settings-section">
-      <div className="settings-section-title">Composer</div>
+      <div className="settings-section-title">{t("composer.title")}</div>
       <div className="settings-section-subtitle">
-        Control helpers and formatting behavior inside the message editor.
+        {t("composer.subtitle")}
       </div>
-      <div className="settings-subsection-title">Presets</div>
+      <div className="settings-subsection-title">{t("composer.presets.title")}</div>
       <div className="settings-subsection-subtitle">
-        Choose a starting point and fine-tune the toggles below.
+        {t("composer.presets.subtitle")}
       </div>
       <div className="settings-field">
         <label className="settings-field-label" htmlFor="composer-preset">
-          Preset
+          {t("composer.preset")}
         </label>
         <select
           id="composer-preset"
@@ -46,16 +49,16 @@ export function SettingsComposerSection({
           ))}
         </select>
         <div className="settings-help">
-          Presets update the toggles below. Customize any setting after selecting.
+          {t("composer.presets.help")}
         </div>
       </div>
       <div className="settings-divider" />
-      <div className="settings-subsection-title">Code fences</div>
+      <div className="settings-subsection-title">{t("composer.codeFencesTitle")}</div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Expand fences on Space</div>
+          <div className="settings-toggle-title">{t("composer.expandOnSpaceTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Typing ``` then Space inserts a fenced block.
+            {t("composer.expandOnSpaceSubtitle")}
           </div>
         </div>
         <button
@@ -74,9 +77,9 @@ export function SettingsComposerSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Expand fences on Enter</div>
+          <div className="settings-toggle-title">{t("composer.expandOnEnterTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Use Enter to expand ``` lines when enabled.
+            {t("composer.expandOnEnterSubtitle")}
           </div>
         </div>
         <button
@@ -95,9 +98,9 @@ export function SettingsComposerSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Support language tags</div>
+          <div className="settings-toggle-title">{t("composer.languageTagsTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Allows ```lang + Space to include a language.
+            {t("composer.languageTagsSubtitle")}
           </div>
         </div>
         <button
@@ -116,9 +119,9 @@ export function SettingsComposerSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Wrap selection in fences</div>
+          <div className="settings-toggle-title">{t("composer.wrapSelectionTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Wraps selected text when creating a fence.
+            {t("composer.wrapSelectionSubtitle")}
           </div>
         </div>
         <button
@@ -137,9 +140,9 @@ export function SettingsComposerSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Copy blocks without fences</div>
+          <div className="settings-toggle-title">{t("composer.copyWithoutFencesTitle")}</div>
           <div className="settings-toggle-subtitle">
-            When enabled, Copy is plain text. Hold {optionKeyLabel} to include ``` fences.
+            {t("composer.copyWithoutFencesSubtitle", { optionKeyLabel })}
           </div>
         </div>
         <button
@@ -158,12 +161,12 @@ export function SettingsComposerSection({
         </button>
       </div>
       <div className="settings-divider" />
-      <div className="settings-subsection-title">Pasting</div>
+      <div className="settings-subsection-title">{t("composer.pastingTitle")}</div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Auto-wrap multi-line paste</div>
+          <div className="settings-toggle-title">{t("composer.autoWrapMultilineTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Wraps multi-line paste inside a fenced block.
+            {t("composer.autoWrapMultilineSubtitle")}
           </div>
         </div>
         <button
@@ -183,9 +186,9 @@ export function SettingsComposerSection({
       </div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Auto-wrap code-like single lines</div>
+          <div className="settings-toggle-title">{t("composer.autoWrapCodeLikeTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Wraps long single-line code snippets on paste.
+            {t("composer.autoWrapCodeLikeSubtitle")}
           </div>
         </div>
         <button
@@ -204,12 +207,12 @@ export function SettingsComposerSection({
         </button>
       </div>
       <div className="settings-divider" />
-      <div className="settings-subsection-title">Lists</div>
+      <div className="settings-subsection-title">{t("composer.listsTitle")}</div>
       <div className="settings-toggle-row">
         <div>
-          <div className="settings-toggle-title">Continue lists on Shift+Enter</div>
+          <div className="settings-toggle-title">{t("composer.continueListsTitle")}</div>
           <div className="settings-toggle-subtitle">
-            Continues numbered and bulleted lists when the line has content.
+            {t("composer.continueListsSubtitle")}
           </div>
         </div>
         <button

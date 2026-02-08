@@ -5,6 +5,7 @@ import type {
   TailscaleStatus,
   TcpDaemonStatus,
 } from "../../../../types";
+import { useAppTranslation } from "../../../i18n/i18n";
 
 type SettingsServerSectionProps = {
   appSettings: AppSettings;
@@ -117,35 +118,45 @@ export function SettingsServerSection({
   onOrbitRunnerStatus,
   onMobileConnectTest,
 }: SettingsServerSectionProps) {
+  const { t } = useAppTranslation("settings");
   const isMobileSimplified = isMobilePlatform;
+  const remoteProviderWipSuffix = " (wip)";
   const tcpRunnerStatusText = (() => {
     if (!tcpDaemonStatus) {
       return null;
     }
+    const configuredListenAddress = t("codex.configuredListenAddress");
     if (tcpDaemonStatus.state === "running") {
       return tcpDaemonStatus.pid
-        ? `Mobile daemon is running (pid ${tcpDaemonStatus.pid}) on ${tcpDaemonStatus.listenAddr ?? "configured listen address"}.`
-        : `Mobile daemon is running on ${tcpDaemonStatus.listenAddr ?? "configured listen address"}.`;
+        ? t("codex.tcpDaemonRunningWithPid", {
+            pid: tcpDaemonStatus.pid,
+            listenAddr: tcpDaemonStatus.listenAddr ?? configuredListenAddress,
+          })
+        : t("codex.tcpDaemonRunning", {
+            listenAddr: tcpDaemonStatus.listenAddr ?? configuredListenAddress,
+          });
     }
     if (tcpDaemonStatus.state === "error") {
-      return tcpDaemonStatus.lastError ?? "Mobile daemon is in an error state.";
+      return tcpDaemonStatus.lastError ?? t("codex.tcpDaemonErrorState");
     }
-    return `Mobile daemon is stopped${tcpDaemonStatus.listenAddr ? ` (${tcpDaemonStatus.listenAddr})` : ""}.`;
+    return t("codex.tcpDaemonStopped", {
+      listenAddrSuffix: tcpDaemonStatus.listenAddr ? ` (${tcpDaemonStatus.listenAddr})` : "",
+    });
   })();
 
   return (
     <section className="settings-section">
-      <div className="settings-section-title">Server</div>
+      <div className="settings-section-title">{t("nav.server")}</div>
       <div className="settings-section-subtitle">
         {isMobileSimplified
-          ? "Choose TCP or Orbit, fill in the connection endpoint and token from your desktop setup, then run a connection test."
-          : "Configure how CodexMonitor exposes backend access for mobile and remote clients. Desktop usage remains local unless you explicitly connect through remote mode."}
+          ? t("codex.mobileSetupSubtitle")
+          : t("codex.serverSubtitleDesktop")}
       </div>
 
       {!isMobileSimplified && (
         <div className="settings-field">
           <label className="settings-field-label" htmlFor="backend-mode">
-            Backend mode
+            {t("codex.backendMode")}
           </label>
           <select
             id="backend-mode"
@@ -158,12 +169,11 @@ export function SettingsServerSection({
               })
             }
           >
-            <option value="local">Local (default)</option>
-            <option value="remote">Remote (daemon)</option>
+            <option value="local">{t("codex.backendLocal")}</option>
+            <option value="remote">{t("codex.backendRemote")}</option>
           </select>
           <div className="settings-help">
-            Local keeps desktop requests in-process. Remote routes desktop requests through the same
-            network transport path used by mobile clients.
+            {t("codex.backendModeHelp")}
           </div>
         </div>
       )}
@@ -171,7 +181,7 @@ export function SettingsServerSection({
       <>
         <div className="settings-field">
           <label className="settings-field-label" htmlFor="remote-provider">
-            {isMobileSimplified ? "Connection type" : "Remote provider"}
+            {isMobileSimplified ? t("codex.mobileSetupConnectionType") : t("codex.remoteProvider")}
           </label>
           <select
             id="remote-provider"
@@ -182,27 +192,37 @@ export function SettingsServerSection({
                 event.target.value as AppSettings["remoteBackendProvider"],
               );
             }}
-            aria-label={isMobileSimplified ? "Connection type" : "Remote provider"}
+            aria-label={isMobileSimplified ? t("codex.mobileSetupConnectionType") : t("codex.remoteProvider")}
           >
-            <option value="tcp">{isMobileSimplified ? "TCP" : "TCP (wip)"}</option>
-            <option value="orbit">{isMobileSimplified ? "Orbit" : "Orbit (wip)"}</option>
+            <option value="tcp">
+              {isMobileSimplified
+                ? t("codex.remoteProviderTcp")
+                : `${t("codex.remoteProviderTcp")}${remoteProviderWipSuffix}`}
+            </option>
+            <option value="orbit">
+              {isMobileSimplified
+                ? t("codex.remoteProviderOrbit")
+                : `${t("codex.remoteProviderOrbit")}${remoteProviderWipSuffix}`}
+            </option>
           </select>
           <div className="settings-help">
             {isMobileSimplified
-              ? "TCP uses your desktop daemon Tailscale address. Orbit uses your Orbit websocket endpoint."
-              : "Select which remote transport configuration to maintain for mobile access and optional desktop remote-mode testing."}
+              ? appSettings.remoteBackendProvider === "tcp"
+                ? t("codex.mobileSetupTcpHint")
+                : t("codex.mobileSetupOrbitHint")
+              : t("codex.remoteProviderHelp")}
           </div>
         </div>
 
         {appSettings.remoteBackendProvider === "tcp" && (
           <>
             <div className="settings-field">
-              <div className="settings-field-label">Remote backend</div>
+              <div className="settings-field-label">{t("codex.remoteBackend")}</div>
               <div className="settings-field-row">
                 <input
                   className="settings-input settings-input--compact"
                   value={remoteHostDraft}
-                  placeholder="127.0.0.1:4732"
+                  placeholder={t("codex.remoteBackendHostPlaceholder")}
                   onChange={(event) => onSetRemoteHostDraft(event.target.value)}
                   onBlur={() => {
                     void onCommitRemoteHost();
@@ -213,13 +233,13 @@ export function SettingsServerSection({
                       void onCommitRemoteHost();
                     }
                   }}
-                  aria-label="Remote backend host"
+                  aria-label={t("codex.remoteBackendHost")}
                 />
                 <input
                   type="password"
                   className="settings-input settings-input--compact"
                   value={remoteTokenDraft}
-                  placeholder="Token (required)"
+                  placeholder={t("codex.mobileSetupTokenPlaceholder")}
                   onChange={(event) => onSetRemoteTokenDraft(event.target.value)}
                   onBlur={() => {
                     void onCommitRemoteToken();
@@ -230,19 +250,19 @@ export function SettingsServerSection({
                       void onCommitRemoteToken();
                     }
                   }}
-                  aria-label="Remote backend token"
+                  aria-label={t("codex.remoteBackendToken")}
                 />
               </div>
               <div className="settings-help">
                 {isMobileSimplified
-                  ? "Use the Tailscale host from your desktop CodexMonitor app (Server section), for example `macbook.your-tailnet.ts.net:4732`."
-                  : "This host/token is used by mobile clients and desktop remote-mode testing."}
+                  ? t("codex.mobileSetupTcpHint")
+                  : t("codex.remoteBackendHelp")}
               </div>
             </div>
 
             {isMobileSimplified && (
               <div className="settings-field">
-                <div className="settings-field-label">Connection test</div>
+                <div className="settings-field-label">{t("codex.connectTest")}</div>
                 <div className="settings-field-row">
                   <button
                     type="button"
@@ -250,7 +270,7 @@ export function SettingsServerSection({
                     onClick={onMobileConnectTest}
                     disabled={mobileConnectBusy}
                   >
-                    {mobileConnectBusy ? "Connecting..." : "Connect & test"}
+                    {mobileConnectBusy ? t("codex.mobileSetupConnecting") : t("codex.mobileSetupConnectTest")}
                   </button>
                 </div>
                 {mobileConnectStatusText && (
@@ -261,15 +281,14 @@ export function SettingsServerSection({
                   </div>
                 )}
                 <div className="settings-help">
-                  Make sure your desktop app daemon is running and reachable on Tailscale, then
-                  retry this test.
+                  {t("codex.mobileSetupTcpHint")}
                 </div>
               </div>
             )}
 
             {!isMobileSimplified && (
               <div className="settings-field">
-                <div className="settings-field-label">Mobile access daemon</div>
+                <div className="settings-field-label">{t("codex.mobileAccessDaemon")}</div>
                 <div className="settings-field-row">
                   <button
                     type="button"
@@ -279,7 +298,7 @@ export function SettingsServerSection({
                     }}
                     disabled={tcpDaemonBusyAction !== null}
                   >
-                    {tcpDaemonBusyAction === "start" ? "Starting..." : "Start daemon"}
+                    {tcpDaemonBusyAction === "start" ? t("codex.starting") : t("codex.startDaemon")}
                   </button>
                   <button
                     type="button"
@@ -289,7 +308,7 @@ export function SettingsServerSection({
                     }}
                     disabled={tcpDaemonBusyAction !== null}
                   >
-                    {tcpDaemonBusyAction === "stop" ? "Stopping..." : "Stop daemon"}
+                    {tcpDaemonBusyAction === "stop" ? t("codex.stopping") : t("codex.stopDaemon")}
                   </button>
                   <button
                     type="button"
@@ -299,25 +318,24 @@ export function SettingsServerSection({
                     }}
                     disabled={tcpDaemonBusyAction !== null}
                   >
-                    {tcpDaemonBusyAction === "status" ? "Refreshing..." : "Refresh status"}
+                    {tcpDaemonBusyAction === "status" ? t("codex.refreshing") : t("codex.refreshDaemonStatus")}
                   </button>
                 </div>
                 {tcpRunnerStatusText && <div className="settings-help">{tcpRunnerStatusText}</div>}
                 {tcpDaemonStatus?.startedAtMs && (
                   <div className="settings-help">
-                    Started at: {new Date(tcpDaemonStatus.startedAtMs).toLocaleString()}
+                    {t("codex.startedAt")}: {new Date(tcpDaemonStatus.startedAtMs).toLocaleString()}
                   </div>
                 )}
                 <div className="settings-help">
-                  Start this daemon before connecting from iOS. It uses your current token and
-                  listens on <code>0.0.0.0:&lt;port&gt;</code>, matching your configured host port.
+                  {t("codex.mobileAccessDaemonHelp")}
                 </div>
               </div>
             )}
 
             {!isMobileSimplified && (
               <div className="settings-field">
-                <div className="settings-field-label">Tailscale helper</div>
+                <div className="settings-field-label">{t("codex.tailscaleHelper")}</div>
                 <div className="settings-field-row">
                   <button
                     type="button"
@@ -325,7 +343,7 @@ export function SettingsServerSection({
                     onClick={onRefreshTailscaleStatus}
                     disabled={tailscaleStatusBusy}
                   >
-                    {tailscaleStatusBusy ? "Checking..." : "Detect Tailscale"}
+                    {tailscaleStatusBusy ? t("codex.mobileSetupChecking") : t("codex.detectTailscale")}
                   </button>
                   <button
                     type="button"
@@ -333,7 +351,7 @@ export function SettingsServerSection({
                     onClick={onRefreshTailscaleCommandPreview}
                     disabled={tailscaleCommandBusy}
                   >
-                    {tailscaleCommandBusy ? "Refreshing..." : "Refresh daemon command"}
+                    {tailscaleCommandBusy ? t("codex.refreshing") : t("codex.refreshDaemonCommand")}
                   </button>
                   <button
                     type="button"
@@ -343,7 +361,7 @@ export function SettingsServerSection({
                       void onUseSuggestedTailscaleHost();
                     }}
                   >
-                    Use suggested host
+                    {t("codex.useSuggestedHost")}
                   </button>
                 </div>
                 {tailscaleStatusError && (
@@ -354,17 +372,17 @@ export function SettingsServerSection({
                     <div className="settings-help">{tailscaleStatus.message}</div>
                     <div className="settings-help">
                       {tailscaleStatus.installed
-                        ? `Version: ${tailscaleStatus.version ?? "unknown"}`
-                        : "Install Tailscale on both desktop and iOS to continue."}
+                        ? `${t("codex.version")}: ${tailscaleStatus.version ?? t("codex.unknown")}`
+                        : t("codex.installTailscalePrompt")}
                     </div>
                     {tailscaleStatus.suggestedRemoteHost && (
                       <div className="settings-help">
-                        Suggested remote host: <code>{tailscaleStatus.suggestedRemoteHost}</code>
+                        {t("codex.suggestedRemoteHost")}: <code>{tailscaleStatus.suggestedRemoteHost}</code>
                       </div>
                     )}
                     {tailscaleStatus.tailnetName && (
                       <div className="settings-help">
-                        Tailnet: <code>{tailscaleStatus.tailnetName}</code>
+                        {t("codex.tailnet")}: <code>{tailscaleStatus.tailnetName}</code>
                       </div>
                     )}
                   </>
@@ -375,14 +393,14 @@ export function SettingsServerSection({
                 {tailscaleCommandPreview && (
                   <>
                     <div className="settings-help">
-                      Command template (manual fallback) for starting the daemon:
+                      {t("codex.daemonCommandTemplate")}
                     </div>
                     <pre className="settings-command-preview">
                       <code>{tailscaleCommandPreview.command}</code>
                     </pre>
                     {!tailscaleCommandPreview.tokenConfigured && (
                       <div className="settings-help settings-help-error">
-                        Remote backend token is empty. Set one before exposing daemon access.
+                        {t("codex.remoteTokenRequiredWarning")}
                       </div>
                     )}
                   </>
@@ -396,13 +414,13 @@ export function SettingsServerSection({
           <>
             <div className="settings-field">
               <label className="settings-field-label" htmlFor="orbit-ws-url">
-                Orbit websocket URL
+                {t("codex.orbitWebsocketUrl")}
               </label>
               <input
                 id="orbit-ws-url"
                 className="settings-input settings-input--compact"
                 value={orbitWsUrlDraft}
-                placeholder="wss://..."
+                placeholder={t("codex.orbitWebsocketUrlPlaceholder")}
                 onChange={(event) => onSetOrbitWsUrlDraft(event.target.value)}
                 onBlur={() => {
                   void onCommitOrbitWsUrl();
@@ -413,7 +431,7 @@ export function SettingsServerSection({
                     void onCommitOrbitWsUrl();
                   }
                 }}
-                aria-label="Orbit websocket URL"
+                aria-label={t("codex.orbitWebsocketUrl")}
               />
             </div>
 
@@ -421,14 +439,14 @@ export function SettingsServerSection({
               <>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="orbit-token-mobile">
-                    Remote backend token
+                    {t("codex.remoteBackendToken")}
                   </label>
                   <input
                     id="orbit-token-mobile"
                     type="password"
                     className="settings-input settings-input--compact"
                     value={remoteTokenDraft}
-                    placeholder="Token (required)"
+                    placeholder={t("codex.mobileSetupTokenPlaceholder")}
                     onChange={(event) => onSetRemoteTokenDraft(event.target.value)}
                     onBlur={() => {
                       void onCommitRemoteToken();
@@ -439,14 +457,14 @@ export function SettingsServerSection({
                         void onCommitRemoteToken();
                       }
                     }}
-                    aria-label="Remote backend token"
+                    aria-label={t("codex.remoteBackendToken")}
                   />
                   <div className="settings-help">
-                    Use the same token configured on your desktop Orbit daemon setup.
+                    {t("codex.mobileSetupOrbitHint")}
                   </div>
                 </div>
                 <div className="settings-field">
-                  <div className="settings-field-label">Connection test</div>
+                  <div className="settings-field-label">{t("codex.connectTest")}</div>
                   <div className="settings-field-row">
                     <button
                       type="button"
@@ -454,7 +472,7 @@ export function SettingsServerSection({
                       onClick={onMobileConnectTest}
                       disabled={mobileConnectBusy}
                     >
-                      {mobileConnectBusy ? "Connecting..." : "Connect & test"}
+                      {mobileConnectBusy ? t("codex.mobileSetupConnecting") : t("codex.mobileSetupConnectTest")}
                     </button>
                   </div>
                   {mobileConnectStatusText && (
@@ -465,7 +483,7 @@ export function SettingsServerSection({
                     </div>
                   )}
                   <div className="settings-help">
-                    Make sure the Orbit endpoint and token match your desktop setup, then retry.
+                    {t("codex.mobileSetupOrbitHint")}
                   </div>
                 </div>
               </>
@@ -475,13 +493,13 @@ export function SettingsServerSection({
               <>
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="orbit-auth-url">
-                    Orbit auth URL
+                    {t("codex.orbitAuthUrl")}
                   </label>
                   <input
                     id="orbit-auth-url"
                     className="settings-input settings-input--compact"
                     value={orbitAuthUrlDraft}
-                    placeholder="https://..."
+                    placeholder={t("codex.orbitAuthUrlPlaceholder")}
                     onChange={(event) => onSetOrbitAuthUrlDraft(event.target.value)}
                     onBlur={() => {
                       void onCommitOrbitAuthUrl();
@@ -492,19 +510,19 @@ export function SettingsServerSection({
                         void onCommitOrbitAuthUrl();
                       }
                     }}
-                    aria-label="Orbit auth URL"
+                    aria-label={t("codex.orbitAuthUrl")}
                   />
                 </div>
 
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="orbit-runner-name">
-                    Orbit runner name
+                    {t("codex.orbitRunnerName")}
                   </label>
                   <input
                     id="orbit-runner-name"
                     className="settings-input settings-input--compact"
                     value={orbitRunnerNameDraft}
-                    placeholder="codex-monitor"
+                    placeholder={t("codex.orbitRunnerNamePlaceholder")}
                     onChange={(event) => onSetOrbitRunnerNameDraft(event.target.value)}
                     onBlur={() => {
                       void onCommitOrbitRunnerName();
@@ -515,15 +533,15 @@ export function SettingsServerSection({
                         void onCommitOrbitRunnerName();
                       }
                     }}
-                    aria-label="Orbit runner name"
+                    aria-label={t("codex.orbitRunnerName")}
                   />
                 </div>
 
                 <div className="settings-toggle-row">
                   <div>
-                    <div className="settings-toggle-title">Auto start runner</div>
+                    <div className="settings-toggle-title">{t("codex.orbitAutoStartRunner")}</div>
                     <div className="settings-toggle-subtitle">
-                      Start the Orbit runner automatically when remote mode activates.
+                      {t("codex.orbitAutoStartRunnerSubtitle")}
                     </div>
                   </div>
                   <button
@@ -543,9 +561,9 @@ export function SettingsServerSection({
 
                 <div className="settings-toggle-row">
                   <div>
-                    <div className="settings-toggle-title">Use Orbit Access</div>
+                    <div className="settings-toggle-title">{t("codex.orbitUseAccess")}</div>
                     <div className="settings-toggle-subtitle">
-                      Enable OAuth client credentials for Orbit Access.
+                      {t("codex.orbitUseAccessSubtitle")}
                     </div>
                   </div>
                   <button
@@ -565,13 +583,13 @@ export function SettingsServerSection({
 
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="orbit-access-client-id">
-                    Orbit access client ID
+                    {t("codex.orbitAccessClientId")}
                   </label>
                   <input
                     id="orbit-access-client-id"
                     className="settings-input settings-input--compact"
                     value={orbitAccessClientIdDraft}
-                    placeholder="client-id"
+                    placeholder={t("codex.orbitAccessClientIdPlaceholder")}
                     disabled={!appSettings.orbitUseAccess}
                     onChange={(event) => onSetOrbitAccessClientIdDraft(event.target.value)}
                     onBlur={() => {
@@ -583,19 +601,19 @@ export function SettingsServerSection({
                         void onCommitOrbitAccessClientId();
                       }
                     }}
-                    aria-label="Orbit access client ID"
+                    aria-label={t("codex.orbitAccessClientId")}
                   />
                 </div>
 
                 <div className="settings-field">
                   <label className="settings-field-label" htmlFor="orbit-access-client-secret-ref">
-                    Orbit access client secret ref
+                    {t("codex.orbitAccessClientSecretRef")}
                   </label>
                   <input
                     id="orbit-access-client-secret-ref"
                     className="settings-input settings-input--compact"
                     value={orbitAccessClientSecretRefDraft}
-                    placeholder="secret-ref"
+                    placeholder={t("codex.orbitAccessClientSecretRefPlaceholder")}
                     disabled={!appSettings.orbitUseAccess}
                     onChange={(event) => onSetOrbitAccessClientSecretRefDraft(event.target.value)}
                     onBlur={() => {
@@ -607,73 +625,73 @@ export function SettingsServerSection({
                         void onCommitOrbitAccessClientSecretRef();
                       }
                     }}
-                    aria-label="Orbit access client secret ref"
+                    aria-label={t("codex.orbitAccessClientSecretRef")}
                   />
                 </div>
 
                 <div className="settings-field">
-                  <div className="settings-field-label">Orbit actions</div>
+                  <div className="settings-field-label">{t("codex.orbitActions")}</div>
                   <div className="settings-field-row">
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitConnectTest}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "connect-test" ? "Testing..." : "Connect test"}
+                    onClick={onOrbitConnectTest}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "connect-test" ? t("codex.testing") : t("codex.connectTest")}
                     </button>
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitSignIn}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "sign-in" ? "Signing In..." : "Sign In"}
+                    onClick={onOrbitSignIn}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "sign-in" ? t("codex.signingIn") : t("codex.signIn")}
                     </button>
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitSignOut}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "sign-out" ? "Signing Out..." : "Sign Out"}
+                    onClick={onOrbitSignOut}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "sign-out" ? t("codex.signingOut") : t("codex.signOut")}
                     </button>
                   </div>
                   <div className="settings-field-row">
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitRunnerStart}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "runner-start" ? "Starting..." : "Start Runner"}
+                    onClick={onOrbitRunnerStart}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "runner-start" ? t("codex.starting") : t("codex.startRunner")}
                     </button>
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitRunnerStop}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "runner-stop" ? "Stopping..." : "Stop Runner"}
+                    onClick={onOrbitRunnerStop}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "runner-stop" ? t("codex.stopping") : t("codex.stopRunner")}
                     </button>
                     <button
                       type="button"
                       className="button settings-button-compact"
-                      onClick={onOrbitRunnerStatus}
-                      disabled={orbitBusyAction !== null}
-                    >
-                      {orbitBusyAction === "runner-status" ? "Refreshing..." : "Refresh Status"}
+                    onClick={onOrbitRunnerStatus}
+                    disabled={orbitBusyAction !== null}
+                  >
+                      {orbitBusyAction === "runner-status" ? t("codex.refreshing") : t("codex.refreshStatus")}
                     </button>
                   </div>
                   {orbitStatusText && <div className="settings-help">{orbitStatusText}</div>}
                   {orbitAuthCode && (
                     <div className="settings-help">
-                      Auth code: <code>{orbitAuthCode}</code>
+                      {t("codex.authCode")}: <code>{orbitAuthCode}</code>
                     </div>
                   )}
                   {orbitVerificationUrl && (
                     <div className="settings-help">
-                      Verification URL:{" "}
+                      {t("codex.verificationUrl")}:{" "}
                       <a href={orbitVerificationUrl} target="_blank" rel="noreferrer">
                         {orbitVerificationUrl}
                       </a>
@@ -689,9 +707,9 @@ export function SettingsServerSection({
       <div className="settings-help">
         {isMobileSimplified
           ? appSettings.remoteBackendProvider === "tcp"
-            ? "Use your own infrastructure only. On iOS, get the Tailscale hostname and token from your desktop CodexMonitor setup."
-            : "Use your own infrastructure only. On iOS, use the Orbit websocket URL and token configured on your desktop CodexMonitor setup."
-          : "Mobile access should stay scoped to your own infrastructure (tailnet or self-hosted Orbit). CodexMonitor does not provide hosted backend services."}
+            ? t("codex.selfHostWarningTcpMobile")
+            : t("codex.selfHostWarningOrbitMobile")
+          : t("codex.selfHostWarningDesktop")}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { WorkspaceInfo } from "../../../../types";
 import { pushErrorToast } from "../../../../services/toasts";
+import { useAppTranslation } from "../../../i18n/i18n";
 
 type SettingsEnvironmentsSectionProps = {
   mainWorkspaces: WorkspaceInfo[];
@@ -27,19 +28,21 @@ export function SettingsEnvironmentsSection({
   onSetEnvironmentDraftScript,
   onSaveEnvironmentSetup,
 }: SettingsEnvironmentsSectionProps) {
+  const { t } = useAppTranslation("settings");
+
   return (
     <section className="settings-section">
-      <div className="settings-section-title">Environments</div>
+      <div className="settings-section-title">{t("environments.title")}</div>
       <div className="settings-section-subtitle">
-        Configure per-project setup scripts that run after worktree creation.
+        {t("environments.subtitle")}
       </div>
       {mainWorkspaces.length === 0 ? (
-        <div className="settings-empty">No projects yet.</div>
+        <div className="settings-empty">{t("projects.noProjects")}</div>
       ) : (
         <>
           <div className="settings-field">
             <label className="settings-field-label" htmlFor="settings-environment-project">
-              Project
+              {t("environments.project")}
             </label>
             <select
               id="settings-environment-project"
@@ -60,9 +63,9 @@ export function SettingsEnvironmentsSection({
           </div>
 
           <div className="settings-field">
-            <div className="settings-field-label">Setup script</div>
+            <div className="settings-field-label">{t("environments.setupScript")}</div>
             <div className="settings-help">
-              Runs once in a dedicated terminal after each new worktree is created.
+              {t("environments.setupScriptHelp")}
             </div>
             {environmentError ? (
               <div className="settings-agents-error">{environmentError}</div>
@@ -71,7 +74,7 @@ export function SettingsEnvironmentsSection({
               className="settings-agents-textarea"
               value={environmentDraftScript}
               onChange={(event) => onSetEnvironmentDraftScript(event.target.value)}
-              placeholder="pnpm install"
+              placeholder={t("environments.setupScriptPlaceholder")}
               spellCheck={false}
               disabled={environmentSaving}
             />
@@ -83,24 +86,22 @@ export function SettingsEnvironmentsSection({
                   const clipboard = typeof navigator === "undefined" ? null : navigator.clipboard;
                   if (!clipboard?.writeText) {
                     pushErrorToast({
-                      title: "Copy failed",
-                      message:
-                        "Clipboard access is unavailable in this environment. Copy the script manually instead.",
+                      title: t("environments.copyFailedTitle"),
+                      message: t("environments.copyFailedClipboardUnavailable"),
                     });
                     return;
                   }
 
                   void clipboard.writeText(environmentDraftScript).catch(() => {
                     pushErrorToast({
-                      title: "Copy failed",
-                      message:
-                        "Could not write to the clipboard. Copy the script manually instead.",
+                      title: t("environments.copyFailedTitle"),
+                      message: t("environments.copyFailedWrite"),
                     });
                   });
                 }}
                 disabled={environmentSaving || environmentDraftScript.length === 0}
               >
-                Copy
+                {t("environments.copy")}
               </button>
               <button
                 type="button"
@@ -108,7 +109,7 @@ export function SettingsEnvironmentsSection({
                 onClick={() => onSetEnvironmentDraftScript(environmentSavedScript ?? "")}
                 disabled={environmentSaving || !environmentDirty}
               >
-                Reset
+                {t("environments.reset")}
               </button>
               <button
                 type="button"
@@ -118,7 +119,7 @@ export function SettingsEnvironmentsSection({
                 }}
                 disabled={environmentSaving || !environmentDirty}
               >
-                {environmentSaving ? "Saving..." : "Save"}
+                {environmentSaving ? t("environments.saving") : t("environments.save")}
               </button>
             </div>
           </div>
