@@ -44,7 +44,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check macOS signing inputs
+        id: macos_signing
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_PRIVATE_KEY_B64: ${{ secrets.APPLE_API_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -z ${CODESIGN_IDENTITY:-} ] && missing+=(vars.CODESIGN_IDENTITY)
+          [ -z ${NOTARY_PROFILE_NAME:-} ] && missing+=(vars.NOTARY_PROFILE_NAME)
+          [ -z ${APPLE_TEAM_ID:-} ] && missing+=(vars.APPLE_TEAM_ID)
+          [ -z ${APPLE_CERTIFICATE_P12:-} ] && missing+=(secrets.APPLE_CERTIFICATE_P12)
+          [ -z ${APPLE_CERTIFICATE_PASSWORD:-} ] && missing+=(secrets.APPLE_CERTIFICATE_PASSWORD)
+          [ -z ${APPLE_API_KEY_ID:-} ] && missing+=(secrets.APPLE_API_KEY_ID)
+          [ -z ${APPLE_API_ISSUER_ID:-} ] && missing+=(secrets.APPLE_API_ISSUER_ID)
+          [ -z ${APPLE_API_PRIVATE_KEY_B64:-} ] && missing+=(secrets.APPLE_API_PRIVATE_KEY_B64)
+
+          if [ ${#missing[@]} -eq 0 ]; then
+            echo ready=true >> $GITHUB_OUTPUT
+          else
+            echo ready=false >> $GITHUB_OUTPUT
+            printf 'Missing macOS signing inputs: %s\n' ${missing[*]}
+          fi
+
       - name: Import signing certificate
+        if: steps.macos_signing.outputs.ready == 'true'
         env:
           APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -64,6 +92,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN"
 
       - name: Configure notarytool credentials
+        if: steps.macos_signing.outputs.ready == 'true'
         env:
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
@@ -91,12 +120,14 @@ jobs:
           npm run tauri -- build --bundles app
 
       - name: Bundle OpenSSL and re-sign
+        if: steps.macos_signing.outputs.ready == 'true'
         run: |
           set -euo pipefail
           CODESIGN_IDENTITY="$CODESIGN_IDENTITY" \
             scripts/macos-fix-openssl.sh
 
       - name: Notarize and staple
+        if: steps.macos_signing.outputs.ready == 'true'
         run: |
           set -euo pipefail
           ditto -c -k --keepParent \
