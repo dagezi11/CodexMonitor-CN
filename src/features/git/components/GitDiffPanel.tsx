@@ -30,6 +30,7 @@ import {
   fileManagerName,
   isAbsolutePath as isAbsolutePathForPlatform,
 } from "../../../utils/platformPaths";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type GitDiffPanelProps = {
   workspaceId?: string | null;
@@ -265,6 +266,7 @@ function CommitButton({
   commitLoading,
   onCommit,
 }: CommitButtonProps) {
+  const { t } = useAppTranslation("common");
   const hasMessage = commitMessage.trim().length > 0;
   const hasChanges = hasStagedFiles || hasUnstagedFiles;
   const canCommit = hasMessage && hasChanges && !commitLoading;
@@ -284,12 +286,12 @@ function CommitButton({
         disabled={!canCommit}
         title={
           !hasMessage
-            ? "Enter a commit message"
+            ? t("gitDiffPanel.enterCommitMessage")
             : !hasChanges
-              ? "No changes to commit"
+              ? t("gitDiffPanel.noChangesToCommit")
               : hasStagedFiles
-                ? "Commit staged changes"
-                : "Commit all unstaged changes"
+                ? t("gitDiffPanel.commitStaged")
+                : t("gitDiffPanel.commitAllUnstaged")
         }
       >
         {commitLoading ? (
@@ -309,7 +311,7 @@ function CommitButton({
             <path d="M20 6 9 17l-5-5" />
           </svg>
           )}
-        <span>{commitLoading ? "Committing..." : "Commit"}</span>
+        <span>{commitLoading ? t("gitDiffPanel.committing") : t("gitDiffPanel.commit")}</span>
       </button>
     </div>
   );
@@ -342,6 +344,7 @@ function SidebarError({
   action,
   onDismiss,
 }: SidebarErrorProps) {
+  const { t } = useAppTranslation("common");
   return (
     <div className={`sidebar-error sidebar-error-${variant}`}>
       <div className="sidebar-error-body">
@@ -366,8 +369,8 @@ function SidebarError({
         type="button"
         className="ghost icon-button sidebar-error-dismiss"
         onClick={onDismiss}
-        aria-label="Dismiss error"
-        title="Dismiss error"
+        aria-label={t("gitDiffPanel.dismissError")}
+        title={t("gitDiffPanel.dismissError")}
       >
         <X size={12} aria-hidden />
       </button>
@@ -400,6 +403,7 @@ function DiffFileRow({
   onUnstageFile,
   onDiscardFile,
 }: DiffFileRowProps) {
+  const { t } = useAppTranslation("common");
   const { name, dir } = splitPath(file.path);
   const { base, extension } = splitNameAndExtension(name);
   const statusSymbol = getStatusSymbol(file.status);
@@ -442,7 +446,7 @@ function DiffFileRow({
           <span className="diff-sep">/</span>
           <span className="diff-del">-{file.deletions}</span>
         </span>
-        <div className="diff-row-actions" role="group" aria-label="File actions">
+        <div className="diff-row-actions" role="group" aria-label={t("gitDiffPanel.fileActions")}>
           {showStage && (
             <button
               type="button"
@@ -451,8 +455,8 @@ function DiffFileRow({
                 event.stopPropagation();
                 void onStageFile?.(file.path);
               }}
-              data-tooltip="Stage Changes"
-              aria-label="Stage file"
+              data-tooltip={t("gitDiffPanel.stageChanges")}
+              aria-label={t("gitDiffPanel.stageFile")}
             >
               <Plus size={12} aria-hidden />
             </button>
@@ -465,8 +469,8 @@ function DiffFileRow({
                 event.stopPropagation();
                 void onUnstageFile?.(file.path);
               }}
-              data-tooltip="Unstage Changes"
-              aria-label="Unstage file"
+              data-tooltip={t("gitDiffPanel.unstageChanges")}
+              aria-label={t("gitDiffPanel.unstageFile")}
             >
               <Minus size={12} aria-hidden />
             </button>
@@ -479,8 +483,8 @@ function DiffFileRow({
                 event.stopPropagation();
                 void onDiscardFile?.(file.path);
               }}
-              data-tooltip="Discard Changes"
-              aria-label="Discard changes"
+              data-tooltip={t("gitDiffPanel.discardChangesTooltip")}
+              aria-label={t("gitDiffPanel.discardChanges")}
             >
               <RotateCcw size={12} aria-hidden />
             </button>
@@ -530,6 +534,7 @@ function DiffSection({
   onFileClick,
   onShowFileMenu,
 }: DiffSectionProps) {
+  const { t } = useAppTranslation("common");
   const filePaths = files.map((file) => file.path);
   const canStageAll =
     section === "unstaged" &&
@@ -549,7 +554,7 @@ function DiffSection({
           <div
             className="diff-section-actions"
             role="group"
-            aria-label={`${title} actions`}
+            aria-label={t("gitDiffPanel.sectionActions", { title })}
           >
             {canStageAll && (
               <button
@@ -566,8 +571,8 @@ function DiffSection({
                     }
                   })();
                 }}
-                data-tooltip="Stage All Changes"
-                aria-label="Stage all changes"
+                data-tooltip={t("gitDiffPanel.stageAllChanges")}
+                aria-label={t("gitDiffPanel.stageAllChanges")}
               >
                 <Plus size={12} aria-hidden />
               </button>
@@ -583,8 +588,8 @@ function DiffSection({
                     }
                   })();
                 }}
-                data-tooltip="Unstage All Changes"
-                aria-label="Unstage all changes"
+                data-tooltip={t("gitDiffPanel.unstageAllChanges")}
+                aria-label={t("gitDiffPanel.unstageAllChanges")}
               >
                 <Minus size={12} aria-hidden />
               </button>
@@ -596,8 +601,8 @@ function DiffSection({
                 onClick={() => {
                   void onDiscardFiles?.(filePaths);
                 }}
-                data-tooltip="Discard All Changes"
-                aria-label="Discard all changes"
+                data-tooltip={t("gitDiffPanel.discardAllChanges")}
+                aria-label={t("gitDiffPanel.discardAllChanges")}
               >
                 <RotateCcw size={12} aria-hidden />
               </button>
@@ -645,6 +650,7 @@ function GitLogEntryRow({
   onSelect,
   onContextMenu,
 }: GitLogEntryRowProps) {
+  const { t } = useAppTranslation("common");
   return (
     <div
       className={`git-log-entry ${compact ? "git-log-entry-compact" : ""} ${isSelected ? "active" : ""}`}
@@ -659,11 +665,11 @@ function GitLogEntryRow({
         }
       }}
     >
-      <div className="git-log-summary">{entry.summary || "No message"}</div>
+      <div className="git-log-summary">{entry.summary || t("gitDiffPanel.noMessage")}</div>
       <div className="git-log-meta">
         <span className="git-log-sha">{entry.sha.slice(0, 7)}</span>
         <span className="git-log-sep">·</span>
-        <span className="git-log-author">{entry.author || "Unknown"}</span>
+        <span className="git-log-author">{entry.author || t("gitDiffPanel.unknown")}</span>
         <span className="git-log-sep">·</span>
         <span className="git-log-date">
           {formatRelativeTime(entry.timestamp * 1000)}
@@ -756,6 +762,7 @@ export function GitDiffPanel({
   syncError = null,
   commitsAhead = 0,
 }: GitDiffPanelProps) {
+  const { t } = useAppTranslation("common");
   const [dismissedErrorSignatures, setDismissedErrorSignatures] = useState<Set<string>>(
     new Set(),
   );
@@ -879,8 +886,8 @@ export function GitDiffPanel({
     if (!pushNeedsSync) {
       return pushError;
     }
-    return `Remote has new commits. Sync (pull then push) before retrying.\n\n${pushError}`;
-  }, [pushError, pushNeedsSync]);
+    return `${t("gitDiffPanel.remoteHasNewCommits")}\n\n${pushError}`;
+  }, [pushError, pushNeedsSync, t]);
   const handleSyncFromError = useCallback(() => {
     void _onSync?.();
   }, [_onSync]);
@@ -889,12 +896,12 @@ export function GitDiffPanel({
       return null;
     }
     return {
-      label: _syncLoading ? "Syncing..." : "Sync (pull then push)",
+      label: _syncLoading ? t("gitDiffPanel.syncing") : t("gitDiffPanel.syncPullThenPush"),
       onAction: handleSyncFromError,
       disabled: _syncLoading,
       loading: _syncLoading,
     };
-  }, [pushNeedsSync, _onSync, _syncLoading, handleSyncFromError]);
+  }, [pushNeedsSync, _onSync, _syncLoading, handleSyncFromError, t]);
   const githubBaseUrl = useMemo(() => {
     if (!gitRemoteUrl) {
       return null;
@@ -923,7 +930,7 @@ export function GitDiffPanel({
       event.preventDefault();
       event.stopPropagation();
       const copyItem = await MenuItem.new({
-        text: "Copy SHA",
+        text: t("gitDiffPanel.copySha"),
         action: async () => {
           await navigator.clipboard.writeText(entry.sha);
         },
@@ -931,7 +938,7 @@ export function GitDiffPanel({
       const items = [copyItem];
       if (githubBaseUrl) {
         const openItem = await MenuItem.new({
-          text: "Open on GitHub",
+          text: t("gitDiffPanel.openOnGitHub"),
           action: async () => {
             await openUrl(`${githubBaseUrl}/commit/${entry.sha}`);
           },
@@ -943,7 +950,7 @@ export function GitDiffPanel({
       const position = new LogicalPosition(event.clientX, event.clientY);
       await menu.popup(position, window);
     },
-    [githubBaseUrl],
+    [githubBaseUrl, t],
   );
 
   const showPullRequestMenu = useCallback(
@@ -954,7 +961,7 @@ export function GitDiffPanel({
       event.preventDefault();
       event.stopPropagation();
       const openItem = await MenuItem.new({
-        text: "Open on GitHub",
+        text: t("gitDiffPanel.openOnGitHub"),
         action: async () => {
           await openUrl(pullRequest.url);
         },
@@ -964,7 +971,7 @@ export function GitDiffPanel({
       const position = new LogicalPosition(event.clientX, event.clientY);
       await menu.popup(position, window);
     },
-    [],
+    [t],
   );
 
   const discardFiles = useCallback(
@@ -976,12 +983,14 @@ export function GitDiffPanel({
       const previewLimit = 6;
       const preview = paths.slice(0, previewLimit).join("\n");
       const more =
-        paths.length > previewLimit ? `\n… and ${paths.length - previewLimit} more` : "";
+        paths.length > previewLimit
+          ? `\n… ${t("gitDiffPanel.andMore", { count: paths.length - previewLimit })}`
+          : "";
       const message = isSingle
-        ? `Discard changes in:\n\n${paths[0]}\n\nThis cannot be undone.`
-        : `Discard changes in these files?\n\n${preview}${more}\n\nThis cannot be undone.`;
+        ? t("gitDiffPanel.discardInSingle", { path: paths[0] })
+        : t("gitDiffPanel.discardInMultiple", { preview, more });
       const confirmed = await ask(message, {
-        title: "Discard changes",
+        title: t("gitDiffPanel.discardChanges"),
         kind: "warning",
       });
       if (!confirmed) {
@@ -991,7 +1000,7 @@ export function GitDiffPanel({
         await onRevertFile(path);
       }
     },
-    [onRevertFile],
+    [onRevertFile, t],
   );
 
   const discardFile = useCallback(
@@ -1025,8 +1034,6 @@ export function GitDiffPanel({
       }
 
       const fileCount = targetPaths.length;
-      const plural = fileCount > 1 ? "s" : "";
-      const countSuffix = fileCount > 1 ? ` (${fileCount})` : "";
       const normalizedRoot = resolveRootPath(gitRoot, workspacePath);
       const inferredRoot =
         !normalizedRoot && gitRootCandidates.length === 1
@@ -1049,7 +1056,10 @@ export function GitDiffPanel({
       if (stagedPaths.length > 0 && onUnstageFile) {
         items.push(
           await MenuItem.new({
-            text: `Unstage file${stagedPaths.length > 1 ? `s (${stagedPaths.length})` : ""}`,
+            text:
+              stagedPaths.length > 1
+                ? t("gitDiffPanel.unstageFilesCount", { count: stagedPaths.length })
+                : t("gitDiffPanel.unstageFile"),
             action: async () => {
               for (const p of stagedPaths) {
                 await onUnstageFile(p);
@@ -1063,7 +1073,10 @@ export function GitDiffPanel({
       if (unstagedPaths.length > 0 && onStageFile) {
         items.push(
           await MenuItem.new({
-            text: `Stage file${unstagedPaths.length > 1 ? `s (${unstagedPaths.length})` : ""}`,
+            text:
+              unstagedPaths.length > 1
+                ? t("gitDiffPanel.stageFilesCount", { count: unstagedPaths.length })
+                : t("gitDiffPanel.stageFile"),
             action: async () => {
               for (const p of unstagedPaths) {
                 await onStageFile(p);
@@ -1088,13 +1101,13 @@ export function GitDiffPanel({
         const fileName = getFileName(rawPath);
         items.push(
           await MenuItem.new({
-            text: `Show in ${fileManagerLabel}`,
+            text: t("gitDiffPanel.showInFileManager", { value: fileManagerLabel }),
             action: async () => {
               try {
                 if (!resolvedRoot && !isAbsolutePathForPlatform(absolutePath)) {
                   pushErrorToast({
-                    title: `Couldn't show file in ${fileManagerLabel}`,
-                    message: "Select a git root first.",
+                    title: t("gitDiffPanel.couldNotShowIn", { value: fileManagerLabel }),
+                    message: t("gitDiffPanel.selectGitRootFirst"),
                   });
                   return;
                 }
@@ -1106,10 +1119,10 @@ export function GitDiffPanel({
                 const message =
                   error instanceof Error ? error.message : String(error);
                 pushErrorToast({
-                  title: `Couldn't show file in ${fileManagerLabel}`,
+                  title: t("gitDiffPanel.couldNotShowIn", { value: fileManagerLabel }),
                   message,
                 });
-                console.warn("Failed to reveal file", {
+                console.warn(t("gitDiffPanel.failedToRevealFile"), {
                   message,
                   path: absolutePath,
                 });
@@ -1119,13 +1132,13 @@ export function GitDiffPanel({
         );
         items.push(
           await MenuItem.new({
-            text: "Copy file name",
+            text: t("gitDiffPanel.copyFileName"),
             action: async () => {
               await navigator.clipboard.writeText(fileName);
             },
           }),
           await MenuItem.new({
-            text: "Copy file path",
+            text: t("gitDiffPanel.copyFilePath"),
             action: async () => {
               await navigator.clipboard.writeText(projectRelativePath);
             },
@@ -1137,7 +1150,10 @@ export function GitDiffPanel({
       if (onRevertFile) {
         items.push(
           await MenuItem.new({
-            text: `Discard change${plural}${countSuffix}`,
+            text:
+              fileCount > 1
+                ? t("gitDiffPanel.discardChangesCount", { count: fileCount })
+                : t("gitDiffPanel.discardChangeSingle"),
             action: async () => {
               await discardFiles(targetPaths);
             },
@@ -1164,17 +1180,22 @@ export function GitDiffPanel({
       gitRoot,
       gitRootCandidates,
       workspacePath,
+      t,
     ],
   );
   const logCountLabel = logTotal
-    ? `${logTotal} commit${logTotal === 1 ? "" : "s"}`
+    ? t("gitDiffPanel.commitsCount", { count: logTotal })
     : logEntries.length
-      ? `${logEntries.length} commit${logEntries.length === 1 ? "" : "s"}`
-    : "No commits";
+      ? t("gitDiffPanel.commitsCount", {
+          count: logEntries.length,
+        })
+      : t("gitDiffPanel.noCommits");
   const logSyncLabel = logUpstream
     ? `↑${logAhead} ↓${logBehind}`
-    : "No upstream configured";
-  const logUpstreamLabel = logUpstream ? `Upstream ${logUpstream}` : "";
+    : t("gitDiffPanel.noUpstreamConfigured");
+  const logUpstreamLabel = logUpstream
+    ? t("gitDiffPanel.upstreamLabel", { value: logUpstream })
+    : "";
   const showAheadSection = logUpstream && logAhead > 0;
   const showBehindSection = logUpstream && logBehind > 0;
   const hasDiffTotals = totalAdditions > 0 || totalDeletions > 0;
@@ -1279,11 +1300,20 @@ export function GitDiffPanel({
   ) : (
     <Upload size={12} aria-hidden />
   );
+  const pullTitle = t("gitDiffPanel.pullCommits", {
+    count: commitsBehind,
+  });
+  const pushTitle =
+    commitsBehind > 0
+      ? t("gitDiffPanel.remoteAheadPullFirst")
+      : t("gitDiffPanel.pushCommits", {
+          count: commitsAhead,
+        });
   return (
     <PanelFrame>
       <PanelHeader className="git-panel-header">
         <PanelTabs active={filePanelMode} onSelect={onFilePanelModeChange} />
-        <div className="git-panel-actions" role="group" aria-label="Git panel">
+        <div className="git-panel-actions" role="group" aria-label={t("gitDiffPanel.gitPanel")}>
           <div className="git-panel-select">
             <span className="git-panel-select-icon" aria-hidden>
               <ModeIcon />
@@ -1294,12 +1324,12 @@ export function GitDiffPanel({
               onChange={(event) =>
                 onModeChange(event.target.value as GitDiffPanelProps["mode"])
               }
-              aria-label="Git panel view"
+              aria-label={t("gitDiffPanel.gitPanelView")}
             >
-              <option value="diff">Diff</option>
-              <option value="log">Log</option>
-              <option value="issues">Issues</option>
-              <option value="prs">PRs</option>
+              <option value="diff">{t("gitDiffPanel.tabDiff")}</option>
+              <option value="log">{t("gitDiffPanel.tabLog")}</option>
+              <option value="issues">{t("gitDiffPanel.tabIssues")}</option>
+              <option value="prs">{t("gitDiffPanel.tabPrs")}</option>
             </select>
           </div>
           {showApplyWorktree && (
@@ -1310,8 +1340,10 @@ export function GitDiffPanel({
                 void onApplyWorktreeChanges?.();
               }}
               disabled={worktreeApplyLoading || worktreeApplySuccess}
-              data-tooltip={worktreeApplyTitle ?? "Apply changes to parent workspace"}
-              aria-label="Apply worktree changes"
+              data-tooltip={
+                worktreeApplyTitle ?? t("gitDiffPanel.applyToParentWorkspace")
+              }
+              aria-label={t("gitDiffPanel.applyWorktreeChanges")}
             >
               {worktreeApplyIcon}
             </button>
@@ -1338,36 +1370,38 @@ export function GitDiffPanel({
       ) : mode === "issues" ? (
         <>
           <div className="diff-status diff-status-issues">
-            <span>GitHub issues</span>
+            <span>{t("gitDiffPanel.githubIssues")}</span>
             {issuesLoading && <span className="git-panel-spinner" aria-hidden />}
           </div>
           <div className="git-log-sync">
-            <span>{issuesTotal} open</span>
+            <span>{t("gitDiffPanel.openCount", { count: issuesTotal })}</span>
           </div>
         </>
       ) : (
         <>
           <div className="diff-status diff-status-issues">
-            <span>GitHub pull requests</span>
+            <span>{t("gitDiffPanel.githubPullRequests")}</span>
             {pullRequestsLoading && (
               <span className="git-panel-spinner" aria-hidden />
             )}
           </div>
           <div className="git-log-sync">
-            <span>{pullRequestsTotal} open</span>
+            <span>{t("gitDiffPanel.openCount", { count: pullRequestsTotal })}</span>
           </div>
         </>
       )}
       {mode === "diff" || mode === "log" ? (
         <div className="diff-branch-row">
-          <div className="diff-branch">{branchName || "unknown"}</div>
+          <div className="diff-branch">{branchName || t("gitDiffPanel.unknown")}</div>
           <button
             type="button"
             className="diff-branch-refresh"
             onClick={() => void onFetch?.()}
             disabled={!onFetch || fetchLoading}
-            title={fetchLoading ? "Fetching remote..." : "Fetch remote"}
-            aria-label={fetchLoading ? "Fetching remote" : "Fetch remote"}
+            title={fetchLoading ? t("gitDiffPanel.fetchingRemote") : t("gitDiffPanel.fetchRemote")}
+            aria-label={
+              fetchLoading ? t("gitDiffPanel.fetchingRemote") : t("gitDiffPanel.fetchRemote")
+            }
           >
             {fetchLoading ? (
               <span className="git-panel-spinner" aria-hidden />
@@ -1379,7 +1413,7 @@ export function GitDiffPanel({
       ) : null}
       {mode !== "issues" && hasGitRoot && (
         <div className="git-root-current">
-          <span className="git-root-label">Path:</span>
+          <span className="git-root-label">{t("gitDiffPanel.path")}</span>
           <span className="git-root-path" title={gitRoot ?? ""}>
             {gitRoot}
           </span>
@@ -1391,7 +1425,7 @@ export function GitDiffPanel({
               disabled={gitRootScanLoading}
             >
               <ArrowLeftRight className="git-root-button-icon" aria-hidden />
-              Change
+              {t("gitDiffPanel.change")}
             </button>
           )}
         </div>
@@ -1400,7 +1434,7 @@ export function GitDiffPanel({
         <div className="diff-list" onClick={handleDiffListClick}>
           {showGitRootPanel && (
             <div className="git-root-panel">
-              <div className="git-root-title">Choose a repo for this workspace.</div>
+              <div className="git-root-title">{t("gitDiffPanel.chooseRepoForWorkspace")}</div>
               <div className="git-root-actions">
                 <button
                   type="button"
@@ -1408,10 +1442,10 @@ export function GitDiffPanel({
                   onClick={onScanGitRoots}
                   disabled={!onScanGitRoots || gitRootScanLoading}
                 >
-                  Scan workspace
+                  {t("gitDiffPanel.scanWorkspace")}
                 </button>
                 <label className="git-root-depth">
-                  <span>Depth</span>
+                  <span>{t("gitDiffPanel.depth")}</span>
                   <select
                     className="git-root-select"
                     value={gitRootScanDepth}
@@ -1439,7 +1473,7 @@ export function GitDiffPanel({
                     }}
                     disabled={gitRootScanLoading}
                   >
-                    Pick folder
+                    {t("gitDiffPanel.pickFolder")}
                   </button>
                 )}
                 {hasGitRoot && onClearGitRoot && (
@@ -1449,18 +1483,18 @@ export function GitDiffPanel({
                     onClick={onClearGitRoot}
                     disabled={gitRootScanLoading}
                   >
-                    Use workspace root
+                    {t("gitDiffPanel.useWorkspaceRoot")}
                   </button>
                 )}
               </div>
               {gitRootScanLoading && (
-                <div className="diff-empty">Scanning for repositories...</div>
+                <div className="diff-empty">{t("gitDiffPanel.scanningRepositories")}</div>
               )}
               {!gitRootScanLoading &&
                 !gitRootScanError &&
                 gitRootScanHasScanned &&
                 gitRootCandidates.length === 0 && (
-                  <div className="diff-empty">No repositories found.</div>
+                  <div className="diff-empty">{t("gitDiffPanel.noRepositoriesFound")}</div>
                 )}
               {gitRootCandidates.length > 0 && (
                 <div className="git-root-list">
@@ -1476,7 +1510,7 @@ export function GitDiffPanel({
                       onClick={() => onSelectGitRoot?.(path)}
                     >
                       <span className="git-root-path">{path}</span>
-                      {isActive && <span className="git-root-tag">Active</span>}
+                      {isActive && <span className="git-root-tag">{t("gitDiffPanel.active")}</span>}
                     </button>
                     );
                   })}
@@ -1489,7 +1523,7 @@ export function GitDiffPanel({
               <div className="commit-message-input-wrapper">
                 <textarea
                   className="commit-message-input"
-                  placeholder="Commit message..."
+                  placeholder={t("gitDiffPanel.commitMessagePlaceholder")}
                   value={commitMessage}
                   onChange={(e) => onCommitMessageChange?.(e.target.value)}
                   disabled={commitMessageLoading}
@@ -1507,10 +1541,10 @@ export function GitDiffPanel({
                   disabled={commitMessageLoading || !canGenerateCommitMessage}
                   title={
                     stagedFiles.length > 0
-                      ? "Generate commit message from staged changes"
-                      : "Generate commit message from unstaged changes"
+                      ? t("gitDiffPanel.generateFromStaged")
+                      : t("gitDiffPanel.generateFromUnstaged")
                   }
-                  aria-label="Generate commit message"
+                  aria-label={t("gitDiffPanel.generateCommitMessage")}
                 >
                   {commitMessageLoading ? (
                     <svg
@@ -1575,14 +1609,14 @@ export function GitDiffPanel({
                     className="push-button-secondary"
                     onClick={() => void onPull?.()}
                     disabled={!onPull || pullLoading || _syncLoading}
-                    title={`Pull ${commitsBehind} commit${commitsBehind > 1 ? "s" : ""}`}
+                    title={pullTitle}
                   >
                     {pullLoading ? (
                       <span className="commit-button-spinner" aria-hidden />
                     ) : (
                       <Download size={14} aria-hidden />
                     )}
-                    <span>{pullLoading ? "Pulling..." : "Pull"}</span>
+                    <span>{pullLoading ? t("gitDiffPanel.pulling") : t("gitDiffPanel.pull")}</span>
                     <span className="push-count">{commitsBehind}</span>
                   </button>
                 )}
@@ -1592,18 +1626,14 @@ export function GitDiffPanel({
                     className="push-button"
                     onClick={() => void onPush?.()}
                     disabled={!onPush || pushLoading || commitsBehind > 0}
-                    title={
-                      commitsBehind > 0
-                        ? "Remote is ahead. Pull first, or use Sync."
-                        : `Push ${commitsAhead} commit${commitsAhead > 1 ? "s" : ""}`
-                    }
+                    title={pushTitle}
                   >
                     {pushLoading ? (
                       <span className="commit-button-spinner" aria-hidden />
                     ) : (
                       <Upload size={14} aria-hidden />
                     )}
-                    <span>Push</span>
+                    <span>{t("gitDiffPanel.push")}</span>
                     <span className="push-count">{commitsAhead}</span>
                   </button>
                 )}
@@ -1614,14 +1644,16 @@ export function GitDiffPanel({
                   className="push-button-secondary"
                   onClick={() => void _onSync?.()}
                   disabled={!_onSync || _syncLoading || pullLoading}
-                  title="Pull latest changes and push your local commits"
+                  title={t("gitDiffPanel.pullLatestThenPush")}
                 >
                   {_syncLoading ? (
                     <span className="commit-button-spinner" aria-hidden />
                   ) : (
                     <RotateCcw size={14} aria-hidden />
                   )}
-                  <span>{_syncLoading ? "Syncing..." : "Sync (pull then push)"}</span>
+                  <span>
+                    {_syncLoading ? t("gitDiffPanel.syncing") : t("gitDiffPanel.syncPullThenPush")}
+                  </span>
                 </button>
               )}
             </div>
@@ -1631,13 +1663,13 @@ export function GitDiffPanel({
             !unstagedFiles.length &&
             commitsAhead === 0 &&
             commitsBehind === 0 && (
-            <div className="diff-empty">No changes detected.</div>
+            <div className="diff-empty">{t("gitDiffPanel.noChangesDetected")}</div>
           )}
           {(stagedFiles.length > 0 || unstagedFiles.length > 0) && (
             <>
               {stagedFiles.length > 0 && (
                 <DiffSection
-                  title="Staged"
+                  title={t("gitDiffPanel.staged")}
                   files={stagedFiles}
                   section="staged"
                   selectedFiles={selectedFiles}
@@ -1652,7 +1684,7 @@ export function GitDiffPanel({
               )}
               {unstagedFiles.length > 0 && (
                 <DiffSection
-                  title="Unstaged"
+                  title={t("gitDiffPanel.unstaged")}
                   files={unstagedFiles}
                   section="unstaged"
                   selectedFiles={selectedFiles}
@@ -1672,18 +1704,18 @@ export function GitDiffPanel({
       ) : mode === "log" ? (
         <div className="git-log-list">
           {!logError && logLoading && (
-            <div className="diff-viewer-loading">Loading commits...</div>
+            <div className="diff-viewer-loading">{t("gitDiffPanel.loadingCommits")}</div>
           )}
           {!logError &&
             !logLoading &&
             !logEntries.length &&
             !showAheadSection &&
             !showBehindSection && (
-            <div className="diff-empty">No commits yet.</div>
+            <div className="diff-empty">{t("gitDiffPanel.noCommitsYet")}</div>
           )}
           {showAheadSection && (
             <div className="git-log-section">
-              <div className="git-log-section-title">To push</div>
+              <div className="git-log-section-title">{t("gitDiffPanel.toPush")}</div>
               <div className="git-log-section-list">
                 {logAheadEntries.map((entry) => {
                   const isSelected = selectedCommitSha === entry.sha;
@@ -1703,7 +1735,7 @@ export function GitDiffPanel({
           )}
           {showBehindSection && (
             <div className="git-log-section">
-              <div className="git-log-section-title">To pull</div>
+              <div className="git-log-section-title">{t("gitDiffPanel.toPull")}</div>
               <div className="git-log-section-list">
                 {logBehindEntries.map((entry) => {
                   const isSelected = selectedCommitSha === entry.sha;
@@ -1723,7 +1755,7 @@ export function GitDiffPanel({
           )}
           {(logEntries.length > 0 || logLoading) && (
             <div className="git-log-section">
-              <div className="git-log-section-title">Recent commits</div>
+              <div className="git-log-section-title">{t("gitDiffPanel.recentCommits")}</div>
               <div className="git-log-section-list">
                 {logEntries.map((entry) => {
                   const isSelected = selectedCommitSha === entry.sha;
@@ -1744,7 +1776,7 @@ export function GitDiffPanel({
       ) : mode === "issues" ? (
         <div className="git-issues-list">
           {!issuesError && !issuesLoading && !issues.length && (
-            <div className="diff-empty">No open issues.</div>
+            <div className="diff-empty">{t("gitDiffPanel.noOpenIssues")}</div>
           )}
           {issues.map((issue) => {
             const relativeTime = formatRelativeTime(new Date(issue.updatedAt).getTime());
@@ -1774,13 +1806,13 @@ export function GitDiffPanel({
           {!pullRequestsError &&
             !pullRequestsLoading &&
             !pullRequests.length && (
-            <div className="diff-empty">No open pull requests.</div>
+            <div className="diff-empty">{t("gitDiffPanel.noOpenPullRequests")}</div>
           )}
           {pullRequests.map((pullRequest) => {
             const relativeTime = formatRelativeTime(
               new Date(pullRequest.updatedAt).getTime(),
             );
-            const author = pullRequest.author?.login ?? "unknown";
+            const author = pullRequest.author?.login ?? t("gitDiffPanel.unknown");
             const isSelected = selectedPullRequest === pullRequest.number;
             return (
               <div
@@ -1809,7 +1841,7 @@ export function GitDiffPanel({
                 </div>
                 <div className="git-pr-meta">
                   {pullRequest.isDraft && (
-                    <span className="git-pr-pill git-pr-draft">Draft</span>
+                    <span className="git-pr-pill git-pr-draft">{t("gitDiffPanel.draft")}</span>
                   )}
                 </div>
               </div>

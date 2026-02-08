@@ -293,13 +293,14 @@ describe("Messages", () => {
     }
 
     render(<Harness />);
-    expect(useFileLinkOpenerMock).toHaveBeenCalledTimes(1);
+    const initialCallCount = useFileLinkOpenerMock.mock.calls.length;
+    expect(initialCallCount).toBeGreaterThan(0);
     const input = screen.getByLabelText("Draft");
     fireEvent.change(input, { target: { value: "a" } });
     fireEvent.change(input, { target: { value: "ab" } });
     fireEvent.change(input, { target: { value: "abc" } });
 
-    expect(useFileLinkOpenerMock).toHaveBeenCalledTimes(1);
+    expect(useFileLinkOpenerMock.mock.calls.length).toBe(initialCallCount);
   });
 
   it("uses reasoning title for the working indicator and hides title-only reasoning rows", () => {

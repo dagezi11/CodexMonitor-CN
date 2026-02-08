@@ -325,3 +325,9 @@ Type: decision
 Event: 将多模块公共 UI 文案统一迁移到 `common` 命名空间，并在组件层替换硬编码字符串为 `useAppTranslation` 调用。
 Action: 新增 `src/features/i18n/commonTranslations.ts`，并在 about/approval/launch-script/request-input/debug/update/composer/clone/worktree/layout/file-tree/file-preview/open-app/terminal/branch-switcher/rename-thread 等组件落地。
 Rule: 新增用户可见文案优先进入 i18n 资源，禁止在组件中新增硬编码文案（品牌术语白名单除外）。
+## 2026-02-08 15:32
+Context: SettingsView UI 可见文案汉化（Orbit + 占位符 + aria）
+Type: decision
+Event: 将 SettingsView 剩余可见英文文案统一迁移为 i18n key，并补齐 settings 命名空间中 Orbit 状态文案、远端/占位符与工作区覆盖 aria 文案键。
+Action: 在 `src/features/settings/components/SettingsView.tsx` 引入字典驱动选项（含听写语言），并在 `src/features/i18n/i18n.ts` 同步 en/zh-CN 对等 key（含插值）。
+Rule: Settings 相关 UI 文案新增时必须先定义双语 key，再在组件中引用，避免回流硬编码文本。

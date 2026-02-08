@@ -14,6 +14,7 @@ import {
 } from "../../design-system/diff/diffViewerTheme";
 import { Markdown } from "../../messages/components/Markdown";
 import { ImageDiffCard } from "./ImageDiffCard";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type GitDiffViewerItem = {
   path: string;
@@ -71,6 +72,7 @@ const DiffCard = memo(function DiffCard({
   showRevert,
   onRequestRevert,
 }: DiffCardProps) {
+  const { t } = useAppTranslation("common");
   const diffOptions = useMemo(
     () => ({
       diffStyle,
@@ -106,13 +108,13 @@ const DiffCard = memo(function DiffCard({
 
   const placeholder = useMemo(() => {
     if (isLoading) {
-      return "Loading diff...";
+      return t("gitDiffViewer.loadingDiff");
     }
     if (ignoreWhitespaceChanges && !entry.diff.trim()) {
-      return "No non-whitespace changes.";
+      return t("gitDiffViewer.noNonWhitespaceChanges");
     }
-    return "Diff unavailable.";
-  }, [entry.diff, ignoreWhitespaceChanges, isLoading]);
+    return t("gitDiffViewer.diffUnavailable");
+  }, [entry.diff, ignoreWhitespaceChanges, isLoading, t]);
 
   return (
       <div
@@ -128,8 +130,8 @@ const DiffCard = memo(function DiffCard({
           <button
             type="button"
             className="diff-viewer-header-action diff-viewer-header-action--discard"
-            title="Discard changes in this file"
-            aria-label="Discard changes in this file"
+            title={t("gitDiffViewer.discardFile")}
+            aria-label={t("gitDiffViewer.discardFile")}
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -174,10 +176,11 @@ const PullRequestSummary = memo(function PullRequestSummary({
   pullRequestCommentsLoading,
   pullRequestCommentsError,
 }: PullRequestSummaryProps) {
+  const { t } = useAppTranslation("common");
   const prUpdatedLabel = pullRequest.updatedAt
     ? formatRelativeTime(new Date(pullRequest.updatedAt).getTime())
     : null;
-  const prAuthor = pullRequest.author?.login ?? "unknown";
+  const prAuthor = pullRequest.author?.login ?? t("gitDiffViewer.unknownAuthor");
   const prBody = pullRequest.body?.trim() ?? "";
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const sortedComments = useMemo(() => {
@@ -204,7 +207,7 @@ const PullRequestSummary = memo(function PullRequestSummary({
   }, [pullRequest.number]);
 
   return (
-    <section className="diff-viewer-pr" aria-label="Pull request summary">
+    <section className="diff-viewer-pr" aria-label={t("gitDiffViewer.pullRequestSummary")}>
       <div className="diff-viewer-pr-header">
         <div className="diff-viewer-pr-header-row">
           <div className="diff-viewer-pr-title">
@@ -218,7 +221,7 @@ const PullRequestSummary = memo(function PullRequestSummary({
               type="button"
               className="ghost diff-viewer-pr-jump"
               onClick={onJumpToFirstFile}
-              aria-label="Jump to first file"
+              aria-label={t("gitDiffViewer.jumpToFirstFile")}
             >
               <span className="diff-viewer-pr-jump-add">
                 +{diffStats.additions}
@@ -243,7 +246,7 @@ const PullRequestSummary = memo(function PullRequestSummary({
             {pullRequest.baseRefName} ← {pullRequest.headRefName}
           </span>
           {pullRequest.isDraft && (
-            <span className="diff-viewer-pr-pill">Draft</span>
+            <span className="diff-viewer-pr-pill">{t("gitDiffViewer.draft")}</span>
           )}
         </div>
       </div>
@@ -254,15 +257,16 @@ const PullRequestSummary = memo(function PullRequestSummary({
             className="diff-viewer-pr-markdown markdown"
           />
         ) : (
-          <div className="diff-viewer-pr-empty">No description provided.</div>
+          <div className="diff-viewer-pr-empty">{t("gitDiffViewer.noDescription")}</div>
         )}
       </div>
       <div className="diff-viewer-pr-timeline">
         <div className="diff-viewer-pr-timeline-header">
-          <span className="diff-viewer-pr-timeline-title">Activity</span>
+          <span className="diff-viewer-pr-timeline-title">{t("gitDiffViewer.activity")}</span>
           <span className="diff-viewer-pr-timeline-count">
-            {sortedComments.length} comment
-            {sortedComments.length === 1 ? "" : "s"}
+            {t("gitDiffViewer.commentsCount", {
+              count: sortedComments.length,
+            })}
           </span>
           {hiddenCommentCount > 0 && (
             <button
@@ -270,7 +274,7 @@ const PullRequestSummary = memo(function PullRequestSummary({
               className="ghost diff-viewer-pr-timeline-button"
               onClick={() => setIsTimelineExpanded(true)}
             >
-              Show all
+              {t("gitDiffViewer.showAll")}
             </button>
           )}
           {isTimelineExpanded &&
@@ -280,14 +284,14 @@ const PullRequestSummary = memo(function PullRequestSummary({
                 className="ghost diff-viewer-pr-timeline-button"
                 onClick={() => setIsTimelineExpanded(false)}
               >
-                Collapse
+                {t("gitDiffViewer.collapse")}
               </button>
             )}
         </div>
         <div className="diff-viewer-pr-timeline-list">
           {pullRequestCommentsLoading && (
             <div className="diff-viewer-pr-timeline-state">
-              Loading comments…
+              {t("gitDiffViewer.loadingComments")}
             </div>
           )}
           {pullRequestCommentsError && (
@@ -299,17 +303,19 @@ const PullRequestSummary = memo(function PullRequestSummary({
             !pullRequestCommentsError &&
             !sortedComments.length && (
               <div className="diff-viewer-pr-timeline-state">
-                No comments yet.
+                {t("gitDiffViewer.noComments")}
               </div>
             )}
           {hiddenCommentCount > 0 && !isTimelineExpanded && (
             <div className="diff-viewer-pr-timeline-divider">
-              {hiddenCommentCount} earlier comment
-              {hiddenCommentCount === 1 ? "" : "s"}
+              {t("gitDiffViewer.earlierComments", {
+                count: hiddenCommentCount,
+              })}
             </div>
           )}
           {visibleComments.map((comment) => {
-            const commentAuthor = comment.author?.login ?? "unknown";
+            const commentAuthor =
+              comment.author?.login ?? t("gitDiffViewer.unknownAuthor");
             const commentTime = formatRelativeTime(
               new Date(comment.createdAt).getTime(),
             );
@@ -331,7 +337,7 @@ const PullRequestSummary = memo(function PullRequestSummary({
                     />
                   ) : (
                     <div className="diff-viewer-pr-timeline-text">
-                      No comment body.
+                      {t("gitDiffViewer.noCommentBody")}
                     </div>
                   )}
                 </div>
@@ -360,6 +366,7 @@ export function GitDiffViewer({
   onRevertFile,
   onActivePathChange,
 }: GitDiffViewerProps) {
+  const { t } = useAppTranslation("common");
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const activePathRef = useRef<string | null>(null);
@@ -435,15 +442,15 @@ export function GitDiffViewer({
         return;
       }
       const confirmed = await ask(
-        `Discard changes in:\n\n${path}\n\nThis cannot be undone.`,
-        { title: "Discard changes", kind: "warning" },
+        t("gitDiffViewer.discardDialogMessage", { path }),
+        { title: t("gitDiffViewer.discardDialogTitle"), kind: "warning" },
       );
       if (!confirmed) {
         return;
       }
       await onRevertFile(path);
     },
-    [onRevertFile],
+    [onRevertFile, t],
   );
 
   useEffect(() => {
@@ -613,8 +620,8 @@ export function GitDiffViewer({
                 <button
                   type="button"
                   className="diff-viewer-header-action diff-viewer-header-action--discard"
-                  title="Discard changes in this file"
-                  aria-label="Discard changes in this file"
+                  title={t("gitDiffViewer.discardFile")}
+                  aria-label={t("gitDiffViewer.discardFile")}
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -630,11 +637,11 @@ export function GitDiffViewer({
         {error && <div className="diff-viewer-empty">{error}</div>}
         {!error && isLoading && diffs.length > 0 && (
           <div className="diff-viewer-loading diff-viewer-loading-overlay">
-            Refreshing diff...
+            {t("gitDiffViewer.refreshingDiff")}
           </div>
         )}
         {!error && !isLoading && !diffs.length && (
-          <div className="diff-viewer-empty">No changes detected.</div>
+          <div className="diff-viewer-empty">{t("gitDiffViewer.noChangesDetected")}</div>
         )}
         {!error && diffs.length > 0 && (
           <div

@@ -91,3 +91,12 @@ Rule: 批量替换文案后必须做“重复节点”快速回扫（同 classNa
 Root cause: 在大块 apply_patch 时新增文案后未同步移除原字面量。
 Fix applied: 修复 `src/features/app/components/ApprovalToasts.tsx` 的重复 `ToastTitle`。
 Prevention rule: 文案迁移统一采用“先替换后 grep 旧字面量”的流程，并在提交前运行目标文件差异人工复核。
+## 2026-02-08 15:33
+Context: SettingsView Orbit 状态文案迁移
+Type: mistake
+Event: 初次迁移 Orbit 状态逻辑时遗漏 `codex.orbitRunnerStopped` 翻译键，导致 `getOrbitStatusText` 引用的 key 不完整。
+Action: 在 `src/features/i18n/i18n.ts` 补齐 en/zh-CN 的 `orbitRunnerStopped`，并通过 `typecheck + settings/i18n 测试 + 全量测试` 验证。
+Rule: 新增状态映射函数使用 i18n key 后，必须执行“调用 key 反查”确保每个 key 在双语资源中都存在。
+Root cause: 将散落硬编码文本改为集中 key 时，只校验了主流程键，未覆盖到默认分支返回键。
+Fix applied: 增加缺失 key 并加入迁移后 grep 检查步骤。
+Prevention rule: 每次大规模文案迁移后，先 `rg` 检查 key 调用，再运行 typecheck，最后跑目标测试与全量测试。

@@ -26,6 +26,7 @@ import { DiffBlock } from "../../git/components/DiffBlock";
 import { languageFromPath } from "../../../utils/syntax";
 import { useFileLinkOpener } from "../hooks/useFileLinkOpener";
 import { RequestUserInputMessage } from "../../app/components/RequestUserInputMessage";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type MessagesProps = {
   items: ConversationItem[];
@@ -208,7 +209,7 @@ function parseReasoning(item: Extract<ConversationItem, { kind: "reasoning" }>) 
     ? cleanTitle.length > 80
       ? `${cleanTitle.slice(0, 80)}…`
       : cleanTitle
-    : "Reasoning";
+    : "推理";
   const summaryLines = summary.split("\n");
   const contentLines = content.split("\n");
   const summaryBody =
@@ -265,6 +266,7 @@ const MessageImageGrid = memo(function MessageImageGrid({
   onOpen: (index: number) => void;
   hasText: boolean;
 }) {
+  const { t } = useAppTranslation("common");
   return (
     <div
       className={`message-image-grid${hasText ? " message-image-grid--with-text" : ""}`}
@@ -276,7 +278,7 @@ const MessageImageGrid = memo(function MessageImageGrid({
           type="button"
           className="message-image-thumb"
           onClick={() => onOpen(index)}
-          aria-label={`Open image ${index + 1}`}
+          aria-label={t("messages.openImage", { index: index + 1 })}
         >
           <img src={image.src} alt={image.label} loading="lazy" />
         </button>
@@ -294,6 +296,7 @@ const ImageLightbox = memo(function ImageLightbox({
   activeIndex: number;
   onClose: () => void;
 }) {
+  const { t } = useAppTranslation("common");
   const activeImage = images[activeIndex];
 
   useEffect(() => {
@@ -335,7 +338,7 @@ const ImageLightbox = memo(function ImageLightbox({
           type="button"
           className="message-image-lightbox-close"
           onClick={onClose}
-          aria-label="Close image preview"
+          aria-label={t("messages.closeImagePreview")}
         >
           <X size={16} aria-hidden />
         </button>
@@ -451,7 +454,7 @@ function buildToolSummary(
     const cleanedCommand = cleanCommandText(commandText);
     return {
       label: "command",
-      value: cleanedCommand || "Command",
+      value: cleanedCommand || "命令",
       detail: "",
       output: item.output || "",
     };
@@ -631,6 +634,7 @@ const WorkingIndicator = memo(function WorkingIndicator({
   hasItems,
   reasoningLabel = null,
 }: WorkingIndicatorProps) {
+  const { t } = useAppTranslation("common");
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
@@ -653,14 +657,14 @@ const WorkingIndicator = memo(function WorkingIndicator({
           <div className="working-timer">
             <span className="working-timer-clock">{formatDurationMs(elapsedMs)}</span>
           </div>
-          <span className="working-text">{reasoningLabel || "Working…"}</span>
+          <span className="working-text">{reasoningLabel || t("messages.working")}</span>
         </div>
       )}
       {!isThinking && lastDurationMs !== null && hasItems && (
         <div className="turn-complete" aria-live="polite">
           <span className="turn-complete-line" aria-hidden />
           <span className="turn-complete-label">
-            Done in {formatDurationMs(lastDurationMs)}
+            {t("messages.doneIn", { value: formatDurationMs(lastDurationMs) })}
           </span>
           <span className="turn-complete-line" aria-hidden />
         </div>
@@ -679,6 +683,7 @@ const MessageRow = memo(function MessageRow({
   onOpenFileLinkMenu,
   onOpenThreadLink,
 }: MessageRowProps) {
+  const { t } = useAppTranslation("common");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const hasText = item.text.trim().length > 0;
   const imageItems = useMemo(() => {
@@ -729,8 +734,8 @@ const MessageRow = memo(function MessageRow({
           type="button"
           className={`ghost message-copy-button${isCopied ? " is-copied" : ""}`}
           onClick={() => onCopy(item)}
-          aria-label="Copy message"
-          title="Copy message"
+          aria-label={t("messages.copyMessage")}
+          title={t("messages.copyMessage")}
         >
           <span className="message-copy-icon" aria-hidden>
             <Copy className="message-copy-icon-copy" size={14} />
@@ -752,6 +757,7 @@ const ReasoningRow = memo(function ReasoningRow({
   onOpenFileLinkMenu,
   onOpenThreadLink,
 }: ReasoningRowProps) {
+  const { t } = useAppTranslation("common");
   const { summaryTitle, bodyText, hasBody } = parsed;
   const reasoningTone: StatusTone = hasBody ? "completed" : "processing";
   return (
@@ -761,7 +767,7 @@ const ReasoningRow = memo(function ReasoningRow({
         className="tool-inline-bar-toggle"
         onClick={() => onToggle(item.id)}
         aria-expanded={isExpanded}
-        aria-label="Toggle reasoning details"
+        aria-label={t("messages.toggleReasoningDetails")}
       />
       <div className="tool-inline-content">
         <button
@@ -801,7 +807,11 @@ const ReviewRow = memo(function ReviewRow({
   onOpenFileLinkMenu,
   onOpenThreadLink,
 }: ReviewRowProps) {
-  const title = item.state === "started" ? "Review started" : "Review completed";
+  const { t } = useAppTranslation("common");
+  const title =
+    item.state === "started"
+      ? t("messages.reviewStarted")
+      : t("messages.reviewCompleted");
   return (
     <div className="item-card review">
       <div className="review-header">
@@ -809,7 +819,7 @@ const ReviewRow = memo(function ReviewRow({
         <span
           className={`review-badge ${item.state === "started" ? "active" : "done"}`}
         >
-          Review
+          {t("messages.reviewBadge")}
         </span>
       </div>
       {item.text && (
@@ -850,6 +860,7 @@ const ToolRow = memo(function ToolRow({
   onOpenThreadLink,
   onRequestAutoScroll,
 }: ToolRowProps) {
+  const { t } = useAppTranslation("common");
   const isFileChange = item.toolType === "fileChange";
   const isCommand = item.toolType === "commandExecution";
   const commandText = isCommand
@@ -864,8 +875,8 @@ const ToolRow = memo(function ToolRow({
   const ToolIcon = toolIconForSummary(item, summary);
   const summaryLabel = isFileChange
     ? changeNames.length > 1
-      ? "files edited"
-      : "file edited"
+      ? t("messages.filesEdited")
+      : t("messages.fileEdited")
     : isCommand
       ? ""
       : summary.label;
@@ -914,7 +925,7 @@ const ToolRow = memo(function ToolRow({
         className="tool-inline-bar-toggle"
         onClick={() => onToggle(item.id)}
         aria-expanded={isExpanded}
-        aria-label="Toggle tool details"
+        aria-label={t("messages.toggleToolDetails")}
       />
       <div className="tool-inline-content">
         <button
@@ -952,7 +963,7 @@ const ToolRow = memo(function ToolRow({
         )}
         {isExpanded && isCommand && item.detail && (
           <div className="tool-inline-detail tool-inline-muted">
-            cwd: {item.detail}
+            {t("messages.cwd")}: {item.detail}
           </div>
         )}
         {isExpanded && isFileChange && hasChanges && (
@@ -1075,7 +1086,11 @@ function exploreKindLabel(kind: ExploreRowProps["item"]["entries"][number]["kind
 }
 
 const ExploreRow = memo(function ExploreRow({ item }: ExploreRowProps) {
-  const title = item.status === "exploring" ? "Exploring" : "Explored";
+  const { t } = useAppTranslation("common");
+  const title =
+    item.status === "exploring"
+      ? t("messages.exploring")
+      : t("messages.explored");
   return (
     <div className="tool-inline explore-inline">
       <div className="tool-inline-bar-toggle" aria-hidden />
@@ -1122,6 +1137,7 @@ export const Messages = memo(function Messages({
   onUserInputSubmit,
   onOpenThreadLink,
 }: MessagesProps) {
+  const { t } = useAppTranslation("common");
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const autoScrollRef = useRef(true);
@@ -1413,10 +1429,20 @@ export const Messages = memo(function Messages({
           const { group } = entry;
           const isCollapsed = collapsedToolGroups.has(group.id);
           const summaryParts = [
-            formatCount(group.toolCount, "tool call", "tool calls"),
+            formatCount(
+              group.toolCount,
+              t("messages.toolCall"),
+              t("messages.toolCalls"),
+            ),
           ];
           if (group.messageCount > 0) {
-            summaryParts.push(formatCount(group.messageCount, "message", "messages"));
+            summaryParts.push(
+              formatCount(
+                group.messageCount,
+                t("messages.message"),
+                t("messages.messages"),
+              ),
+            );
           }
           const summaryText = summaryParts.join(", ");
           const groupBodyId = `tool-group-${group.id}`;
@@ -1433,7 +1459,11 @@ export const Messages = memo(function Messages({
                   onClick={() => toggleToolGroup(group.id)}
                   aria-expanded={!isCollapsed}
                   aria-controls={groupBodyId}
-                  aria-label={isCollapsed ? "Expand tool calls" : "Collapse tool calls"}
+                  aria-label={
+                    isCollapsed
+                      ? t("messages.expandToolCalls")
+                      : t("messages.collapseToolCalls")
+                  }
                 >
                   <span className="tool-group-chevron" aria-hidden>
                     <ChevronIcon size={14} />
@@ -1461,14 +1491,14 @@ export const Messages = memo(function Messages({
       />
       {!items.length && !userInputNode && !isThinking && !isLoadingMessages && (
         <div className="empty messages-empty">
-          {threadId ? "Send a prompt to the agent." : "Send a prompt to start a new agent."}
+          {threadId ? t("messages.sendPromptToAgent") : t("messages.sendPromptToStart")}
         </div>
       )}
       {!items.length && !userInputNode && !isThinking && isLoadingMessages && (
         <div className="empty messages-empty">
           <div className="messages-loading-indicator" role="status" aria-live="polite">
             <span className="working-spinner" aria-hidden />
-            <span className="messages-loading-label">Loading…</span>
+            <span className="messages-loading-label">{t("messages.loading")}</span>
           </div>
         </div>
       )}
