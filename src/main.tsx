@@ -45,18 +45,48 @@ function syncMobileViewportHeight() {
   }
 
   const setViewportHeight = () => {
-    const visualHeight = window.visualViewport?.height;
+    const visualViewport = window.visualViewport;
+    const visualHeight = visualViewport
+      ? visualViewport.height + visualViewport.offsetTop
+      : 0;
+    const rootHeight = document.documentElement?.clientHeight ?? 0;
+    const bodyHeight = document.body?.clientHeight ?? 0;
+    const screenCssHeight =
+      window.screen?.height && window.devicePixelRatio > 0
+        ? window.screen.height / window.devicePixelRatio
+        : 0;
     const nextHeight = Math.round(
-      Math.max(window.innerHeight, visualHeight ?? 0),
+      Math.max(
+        window.innerHeight,
+        visualHeight,
+        rootHeight,
+        bodyHeight,
+        screenCssHeight,
+      ),
     );
     document.documentElement.style.setProperty("--app-height", `${nextHeight}px`);
   };
 
+  const setComposerFocusState = () => {
+    const activeElement = document.activeElement;
+    const isComposerTextareaFocused =
+      activeElement instanceof HTMLTextAreaElement &&
+      activeElement.closest(".composer") !== null;
+    document.documentElement.dataset.mobileComposerFocus = isComposerTextareaFocused
+      ? "true"
+      : "false";
+  };
+
   setViewportHeight();
+  setComposerFocusState();
   window.addEventListener("resize", setViewportHeight, { passive: true });
   window.addEventListener("orientationchange", setViewportHeight, { passive: true });
   window.visualViewport?.addEventListener("resize", setViewportHeight, { passive: true });
   window.visualViewport?.addEventListener("scroll", setViewportHeight, { passive: true });
+  document.addEventListener("focusin", setComposerFocusState);
+  document.addEventListener("focusout", () => {
+    requestAnimationFrame(setComposerFocusState);
+  });
 }
 
 disableMobileZoomGestures();

@@ -81,6 +81,27 @@ iOS 支持正在进行中。
 - 当前限制：移动端暂不支持 terminal 与 dictation。
 - 桌面行为不变：macOS/Linux/Windows 仍是 local-first，除非显式切换为 remote。
 
+### iOS + Tailscale 配置（TCP）
+
+当你需要让 iOS App 通过 Tailscale tailnet 连接桌面端 daemon 时，使用此方案。
+
+1. 在桌面和 iPhone 上安装并登录 Tailscale（同一个 tailnet）。
+2. 在桌面 CodexMonitor 打开 `Settings > Server`。
+3. 保持 `Remote provider` 为 `TCP (wip)`。
+4. 设置 `Remote backend token`。
+5. 在 `Mobile access daemon` 中点击 `Start daemon` 启动桌面 daemon。
+6. 在 `Tailscale helper` 里点击 `Detect Tailscale`，记录建议主机地址（例如 `your-mac.your-tailnet.ts.net:4732`）。
+7. 在 iOS CodexMonitor 打开 `Settings > Server`。
+8. 将 `Connection type` 设为 `TCP`。
+9. 填入桌面 Tailscale 主机地址和同一份 token。
+10. 点击 `Connect & test` 并确认连接测试成功。
+
+说明：
+
+- iOS 连接期间，桌面 daemon 必须保持运行。
+- 若测试失败，请确认两端设备都在线且主机/token 与桌面配置一致。
+- 若想改用 Orbit 而不是 Tailscale TCP，请在 iOS 端将 `Connection type` 改为 `Orbit`，并使用桌面端的 Orbit WebSocket URL/token。
+
 ### iOS 前置条件
 
 - 已安装 Xcode + Command Line Tools。

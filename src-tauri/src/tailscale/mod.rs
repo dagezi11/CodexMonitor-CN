@@ -1,11 +1,18 @@
 mod core;
+mod daemon_commands;
+mod rpc_client;
 
 use std::ffi::{OsStr, OsString};
 use std::io::ErrorKind;
 use std::process::Output;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use serde_json::{json, Value};
 use tauri::State;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
+use tokio::net::TcpStream;
+use tokio::time::{sleep, timeout, Instant};
 
 use crate::daemon_binary::resolve_daemon_binary_path;
 use crate::shared::process_core::{kill_child_process_tree, tokio_command};
@@ -115,6 +122,11 @@ fn daemon_listen_addr(remote_host: &str) -> String {
     format!("0.0.0.0:{port}")
 }
 
+fn daemon_connect_addr(listen_addr: &str) -> Option<String> {
+    let port = parse_port_from_remote_host(listen_addr)?;
+    Some(format!("127.0.0.1:{port}"))
+}
+
 fn configured_daemon_listen_addr(settings: &crate::types::AppSettings) -> String {
     daemon_listen_addr(&settings.remote_backend_host)
 }
@@ -189,6 +201,94 @@ async fn refresh_tcp_daemon_runtime(runtime: &mut TcpDaemonRuntime) {
             };
         }
     }
+}
+
+#[cfg(unix)]
+fn is_pid_running(pid: u32) -> bool {
+    let result = unsafe { libc::kill(pid as i32, 0) };
+    if result == 0 {
+        return true;
+    }
+    match std::io::Error::last_os_error().raw_os_error() {
+        Some(code) => code != libc::ESRCH,
+        None => false,
+    }
+}
+
+#[cfg(unix)]
+async fn find_listener_pid(port: u16) -> Option<u32> {
+    let target = format!(":{port}");
+    let output = match tokio_command("lsof")
+        .args(["-nP", "-iTCP"])
+        .arg(&target)
+        .args(["-sTCP:LISTEN", "-t"])
+        .output()
+        .await
+    {
+        Ok(output) => output,
+        Err(err) if err.kind() == ErrorKind::NotFound => return None,
+        Err(_) => return None,
+    };
+
+    if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if output.status.code() == Some(1) && stdout.trim().is_empty() && stderr.trim().is_empty() {
+            return None;
+        }
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    stdout
+        .lines()
+        .find_map(|line| line.trim().parse::<u32>().ok())
+}
+
+#[cfg(unix)]
+async fn kill_pid_gracefully(pid: u32) -> Result<(), String> {
+    let term_result = unsafe { libc::kill(pid as i32, libc::SIGTERM) };
+    if term_result != 0 {
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() != Some(libc::ESRCH) {
+            return Err(format!("Failed to stop daemon process {pid}: {err}"));
+        }
+        return Ok(());
+    }
+
+    for _ in 0..12 {
+        if !is_pid_running(pid) {
+            return Ok(());
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+
+    let kill_result = unsafe { libc::kill(pid as i32, libc::SIGKILL) };
+    if kill_result != 0 {
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() != Some(libc::ESRCH) {
+            return Err(format!("Failed to force-stop daemon process {pid}: {err}"));
+        }
+    }
+
+    for _ in 0..8 {
+        if !is_pid_running(pid) {
+            return Ok(());
+        }
+        sleep(Duration::from_millis(100)).await;
+    }
+
+    Err(format!("Daemon process {pid} is still running."))
+}
+
+#[cfg(not(unix))]
+async fn find_listener_pid(_port: u16) -> Option<u32> {
+    None
+}
+
+#[cfg(not(unix))]
+async fn kill_pid_gracefully(_pid: u32) -> Result<(), String> {
+    Err("Stopping external daemon by pid is not supported on this platform.".to_string())
 }
 
 #[tauri::command]
@@ -338,125 +438,26 @@ mod tests {
 pub(crate) async fn tailscale_daemon_command_preview(
     state: State<'_, AppState>,
 ) -> Result<TailscaleDaemonCommandPreview, String> {
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    {
-        return Err(UNSUPPORTED_MESSAGE.to_string());
-    }
-
-    let daemon_path = resolve_daemon_binary_path()?;
-    let data_dir = state
-        .settings_path
-        .parent()
-        .map(|path| path.to_path_buf())
-        .ok_or_else(|| "Unable to resolve app data directory".to_string())?;
-    let settings = state.app_settings.lock().await.clone();
-    let token_configured = settings
-        .remote_backend_token
-        .as_deref()
-        .map(str::trim)
-        .map(|value| !value.is_empty())
-        .unwrap_or(false);
-
-    Ok(tailscale_core::daemon_command_preview(
-        &daemon_path,
-        &data_dir,
-        token_configured,
-    ))
+    daemon_commands::tailscale_daemon_command_preview(state).await
 }
 
 #[tauri::command]
 pub(crate) async fn tailscale_daemon_start(
     state: State<'_, AppState>,
 ) -> Result<TcpDaemonStatus, String> {
-    if cfg!(any(target_os = "android", target_os = "ios")) {
-        return Err("Tailscale daemon start is only supported on desktop.".to_string());
-    }
-
-    let settings = state.app_settings.lock().await.clone();
-    let token = settings
-        .remote_backend_token
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            "Set a Remote backend token before starting mobile access daemon.".to_string()
-        })?;
-    let listen_addr = configured_daemon_listen_addr(&settings);
-    let daemon_binary = resolve_daemon_binary_path()?;
-
-    let data_dir = state
-        .settings_path
-        .parent()
-        .map(|path| path.to_path_buf())
-        .ok_or_else(|| "Unable to resolve app data directory".to_string())?;
-
-    let mut runtime = state.tcp_daemon.lock().await;
-    refresh_tcp_daemon_runtime(&mut runtime).await;
-    if matches!(runtime.status.state, TcpDaemonState::Running) {
-        return Ok(runtime.status.clone());
-    }
-    ensure_listen_addr_available(&listen_addr).await?;
-
-    let child = tokio_command(&daemon_binary)
-        .arg("--listen")
-        .arg(&listen_addr)
-        .arg("--data-dir")
-        .arg(data_dir)
-        .arg("--token")
-        .arg(token)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map_err(|err| format!("Failed to start mobile access daemon: {err}"))?;
-
-    runtime.status = TcpDaemonStatus {
-        state: TcpDaemonState::Running,
-        pid: child.id(),
-        started_at_ms: Some(now_unix_ms()),
-        last_error: None,
-        listen_addr: Some(listen_addr),
-    };
-    runtime.child = Some(child);
-
-    Ok(runtime.status.clone())
+    daemon_commands::tailscale_daemon_start(state).await
 }
 
 #[tauri::command]
 pub(crate) async fn tailscale_daemon_stop(
     state: State<'_, AppState>,
 ) -> Result<TcpDaemonStatus, String> {
-    let settings = state.app_settings.lock().await.clone();
-    let configured_listen_addr = configured_daemon_listen_addr(&settings);
-
-    let mut runtime = state.tcp_daemon.lock().await;
-    if let Some(mut child) = runtime.child.take() {
-        kill_child_process_tree(&mut child).await;
-        let _ = child.wait().await;
-    }
-
-    runtime.status = TcpDaemonStatus {
-        state: TcpDaemonState::Stopped,
-        pid: None,
-        started_at_ms: None,
-        last_error: None,
-        listen_addr: runtime.status.listen_addr.clone(),
-    };
-    sync_tcp_daemon_listen_addr(&mut runtime.status, &configured_listen_addr);
-
-    Ok(runtime.status.clone())
+    daemon_commands::tailscale_daemon_stop(state).await
 }
 
 #[tauri::command]
 pub(crate) async fn tailscale_daemon_status(
     state: State<'_, AppState>,
 ) -> Result<TcpDaemonStatus, String> {
-    let settings = state.app_settings.lock().await.clone();
-    let configured_listen_addr = configured_daemon_listen_addr(&settings);
-
-    let mut runtime = state.tcp_daemon.lock().await;
-    refresh_tcp_daemon_runtime(&mut runtime).await;
-    sync_tcp_daemon_listen_addr(&mut runtime.status, &configured_listen_addr);
-
-    Ok(runtime.status.clone())
+    daemon_commands::tailscale_daemon_status(state).await
 }

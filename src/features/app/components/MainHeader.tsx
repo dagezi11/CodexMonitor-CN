@@ -37,6 +37,7 @@ type MainHeaderProps = {
   onToggleTerminal: () => void;
   isTerminalOpen: boolean;
   showTerminalButton?: boolean;
+  showWorkspaceTools?: boolean;
   extraActionsNode?: ReactNode;
   launchScript?: string | null;
   launchScriptEditorOpen?: boolean;
@@ -89,6 +90,7 @@ export function MainHeader({
   onToggleTerminal,
   isTerminalOpen,
   showTerminalButton = true,
+  showWorkspaceTools = true,
   extraActionsNode,
   launchScript = null,
   launchScriptEditorOpen = false,
@@ -488,7 +490,8 @@ export function MainHeader({
         </div>
       </div>
       <div className="main-header-actions">
-        {onRunLaunchScript &&
+        {showWorkspaceTools &&
+          onRunLaunchScript &&
           onOpenLaunchScriptEditor &&
           onCloseLaunchScriptEditor &&
           onLaunchScriptDraftChange &&
@@ -540,13 +543,15 @@ export function MainHeader({
               ))}
             </div>
           )}
-        <OpenAppMenu
-          path={resolvedWorktreePath}
-          openTargets={openTargets}
-          selectedOpenAppId={selectedOpenAppId}
-          onSelectOpenAppId={onSelectOpenAppId}
-          iconById={openAppIconById}
-        />
+        {showWorkspaceTools ? (
+          <OpenAppMenu
+            path={resolvedWorktreePath}
+            openTargets={openTargets}
+            selectedOpenAppId={selectedOpenAppId}
+            onSelectOpenAppId={onSelectOpenAppId}
+            iconById={openAppIconById}
+          />
+        ) : null}
         {showTerminalButton && (
           <button
             type="button"

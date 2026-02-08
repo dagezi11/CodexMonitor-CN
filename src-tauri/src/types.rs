@@ -1219,8 +1219,7 @@ mod tests {
         };
         assert!(matches!(
             (&settings.backend_mode, &expected_backend_mode),
-            (BackendMode::Local, BackendMode::Local)
-                | (BackendMode::Remote, BackendMode::Remote)
+            (BackendMode::Local, BackendMode::Local) | (BackendMode::Remote, BackendMode::Remote)
         ));
         assert!(matches!(
             settings.remote_backend_provider,
