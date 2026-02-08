@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import { MainTopbar } from "../../app/components/MainTopbar";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type DesktopLayoutProps = {
   sidebarNode: ReactNode;
@@ -48,6 +49,7 @@ export function DesktopLayout({
   onRightPanelResizeStart,
   onPlanPanelResizeStart,
 }: DesktopLayoutProps) {
+  const { t } = useAppTranslation("common");
   const diffLayerRef = useRef<HTMLDivElement | null>(null);
   const chatLayerRef = useRef<HTMLDivElement | null>(null);
   const shouldRenderDiffViewer = preloadGitDiffs || centerMode === "diff";
@@ -90,7 +92,7 @@ export function DesktopLayout({
         className="sidebar-resizer"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize sidebar"
+        aria-label={t("layout.resizeSidebar")}
         onMouseDown={onSidebarResizeStart}
       />
 
@@ -124,7 +126,7 @@ export function DesktopLayout({
               className="right-panel-resizer"
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize right panel"
+              aria-label={t("layout.resizeRightPanel")}
               onMouseDown={onRightPanelResizeStart}
             />
             <div className={`right-panel ${hasActivePlan ? "" : "plan-collapsed"}`}>
@@ -133,7 +135,7 @@ export function DesktopLayout({
                 className="right-panel-divider"
                 role="separator"
                 aria-orientation="horizontal"
-                aria-label="Resize plan panel"
+                aria-label={t("layout.resizePlanPanel")}
                 onMouseDown={onPlanPanelResizeStart}
               />
               <div className="right-panel-bottom">{planPanelNode}</div>

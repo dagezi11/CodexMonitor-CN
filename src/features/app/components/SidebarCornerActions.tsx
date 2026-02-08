@@ -5,6 +5,7 @@ import X from "lucide-react/dist/esm/icons/x";
 import { useEffect, useRef, useState } from "react";
 import { PopoverSurface } from "../../design-system/components/popover/PopoverPrimitives";
 import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type SidebarCornerActionsProps = {
   onOpenSettings: () => void;
@@ -33,6 +34,7 @@ export function SidebarCornerActions({
   onSwitchAccount,
   onCancelSwitchAccount,
 }: SidebarCornerActionsProps) {
+  const { t } = useAppTranslation("shell");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,14 +58,14 @@ export function SidebarCornerActions({
             className="ghost sidebar-corner-button"
             type="button"
             onClick={() => setAccountMenuOpen((open) => !open)}
-            aria-label="Account"
-            title="Account"
+            aria-label={t("account.openAccount")}
+            title={t("account.openAccount")}
           >
             <User size={14} aria-hidden />
           </button>
           {accountMenuOpen && (
             <PopoverSurface className="sidebar-account-popover" role="dialog">
-              <div className="sidebar-account-title">Account</div>
+              <div className="sidebar-account-title">{t("account.menuTitle")}</div>
               <div className="sidebar-account-value">{accountLabel}</div>
               <div className="sidebar-account-actions-row">
                 <button
@@ -86,8 +88,8 @@ export function SidebarCornerActions({
                     className="secondary sidebar-account-cancel"
                     onClick={onCancelSwitchAccount}
                     disabled={accountCancelDisabled}
-                    aria-label="Cancel account switch"
-                    title="Cancel"
+                    aria-label={t("account.cancelAccountSwitch")}
+                    title={t("account.cancel")}
                   >
                     <X size={12} aria-hidden />
                   </button>
@@ -101,8 +103,8 @@ export function SidebarCornerActions({
         className="ghost sidebar-corner-button"
         type="button"
         onClick={onOpenSettings}
-        aria-label="Open settings"
-        title="Settings"
+        aria-label={t("actions.openSettings")}
+        title={t("actions.settings")}
       >
         <Settings size={14} aria-hidden />
       </button>
@@ -111,8 +113,8 @@ export function SidebarCornerActions({
           className="ghost sidebar-corner-button"
           type="button"
           onClick={onOpenDebug}
-          aria-label="Open debug log"
-          title="Debug log"
+          aria-label={t("actions.openDebugLog")}
+          title={t("actions.debugLog")}
         >
           <ScrollText size={14} aria-hidden />
         </button>

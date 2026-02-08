@@ -115,8 +115,10 @@ export type ReviewTarget =
 
 export type AccessMode = "read-only" | "current" | "full-access";
 export type BackendMode = "local" | "remote";
+export type RemoteBackendProvider = "tcp" | "orbit";
 export type ThemePreference = "system" | "light" | "dark" | "dim";
 export type PersonalityPreference = "friendly" | "pragmatic";
+export type AppLanguagePreference = "system" | "zh-CN" | "en";
 
 
 export type ComposerEditorPreset = "default" | "helpful" | "smart";
@@ -145,8 +147,16 @@ export type AppSettings = {
   codexBin: string | null;
   codexArgs: string | null;
   backendMode: BackendMode;
+  remoteBackendProvider: RemoteBackendProvider;
   remoteBackendHost: string;
   remoteBackendToken: string | null;
+  orbitWsUrl: string | null;
+  orbitAuthUrl: string | null;
+  orbitRunnerName: string | null;
+  orbitAutoStartRunner: boolean;
+  orbitUseAccess: boolean;
+  orbitAccessClientId: string | null;
+  orbitAccessClientSecretRef: string | null;
   defaultAccessMode: AccessMode;
   reviewDeliveryMode: "inline" | "detached";
   composerModelShortcut: string | null;
@@ -171,7 +181,9 @@ export type AppSettings = {
   lastComposerReasoningEffort: string | null;
   uiScale: number;
   theme: ThemePreference;
+  uiLanguage: AppLanguagePreference;
   usageShowRemaining: boolean;
+  showMessageFilePath: boolean;
   uiFontFamily: string;
   codeFontFamily: string;
   codeFontSize: number;
@@ -201,6 +213,81 @@ export type AppSettings = {
   workspaceGroups: WorkspaceGroup[];
   openAppTargets: OpenAppTarget[];
   selectedOpenAppId: string;
+};
+
+export type OrbitConnectTestResult = {
+  ok: boolean;
+  latencyMs: number | null;
+  message: string;
+  details?: string | null;
+};
+
+export type OrbitDeviceCodeStart = {
+  deviceCode: string;
+  userCode: string | null;
+  verificationUri: string;
+  verificationUriComplete: string | null;
+  intervalSeconds: number;
+  expiresInSeconds: number;
+};
+
+export type OrbitSignInStatus =
+  | "pending"
+  | "authorized"
+  | "denied"
+  | "expired"
+  | "error";
+
+export type OrbitSignInPollResult = {
+  status: OrbitSignInStatus;
+  token: string | null;
+  message: string | null;
+  intervalSeconds: number | null;
+};
+
+export type OrbitSignOutResult = {
+  success: boolean;
+  message: string | null;
+};
+
+export type OrbitRunnerState = "stopped" | "running" | "error";
+
+export type OrbitRunnerStatus = {
+  state: OrbitRunnerState;
+  pid: number | null;
+  startedAtMs: number | null;
+  lastError: string | null;
+  orbitUrl: string | null;
+};
+
+export type TcpDaemonState = "stopped" | "running" | "error";
+
+export type TcpDaemonStatus = {
+  state: TcpDaemonState;
+  pid: number | null;
+  startedAtMs: number | null;
+  lastError: string | null;
+  listenAddr: string | null;
+};
+
+export type TailscaleStatus = {
+  installed: boolean;
+  running: boolean;
+  version: string | null;
+  dnsName: string | null;
+  hostName: string | null;
+  tailnetName: string | null;
+  ipv4: string[];
+  ipv6: string[];
+  suggestedRemoteHost: string | null;
+  message: string;
+};
+
+export type TailscaleDaemonCommandPreview = {
+  command: string;
+  daemonPath: string;
+  args: string[];
+  tokenConfigured: boolean;
 };
 
 export type CodexDoctorResult = {

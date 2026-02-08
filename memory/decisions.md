@@ -1,143 +1,184 @@
-# Decisions
+﻿# Decisions
+
+## Canonical Memory Model
+
+- `memory/decisions.md` stores active, high-signal canonical rules only.
+- Full historical detail for the pre-compaction log is archived at `memory/archive/decisions-2026-02-07-full.md`.
+- New low-signal implementation-step history should go to `memory/archive/` instead of this file.
 
 ## Entry Template
 
+```md
 ## YYYY-MM-DD HH:mm
 Context: <task or feature>
-Type: decision | mistake | preference | todo
-Event: <what happened>
-Action: <what changed / fix applied>
+Type: decision | preference
 Rule: <one-line future behavior>
+Why: <short reason this rule exists>
+```
 
-## 2026-02-07 08:36
-Context: Design-system migration phase 1 (modals/toasts/panels/diff)
+## Active Canonical Rules
+
+### Documentation and Memory
+
+- Keep `AGENTS.md` canonical and current-state only; avoid phase/progress framing.
+- Keep design-system guidance in `AGENTS.md` aligned with implemented primitives, guardrails, and scripts.
+- Keep `memory/decisions.md` high-signal; move detailed timelines to `memory/archive/`.
+
+### Backend Architecture
+
+- Keep domain logic in `src-tauri/src/shared/*`; app/daemon code should remain thin adapters.
+- For app/daemon parity work, extract shared implementations instead of duplicating logic.
+- Add new backend behavior in shared core first, then wire app commands and daemon RPC handlers.
+
+### Remote and Mobile Direction
+
+- Keep mobile remote implementation Orbit-first and Orbit-named across runtime/config/docs.
+- Keep Orbit setup/docs/UI self-host-only unless the user explicitly requests hosted mode.
+- Do not introduce CloudKit/PR31-based mobile backend patterns unless the user explicitly requests them.
+- For iOS rollout, prioritize backend/transport parity for existing responsive UI flows over net-new mobile-specific UI.
+- For current mobile remote scope, terminal and dictation parity remain out of scope unless the user re-enables them.
+- Keep Tailscale as first-run bootstrap for TCP self-host setup while Orbit remains the target production relay path.
+- Keep remote provider labels marked `(wip)` until the user requests removal.
+
+### Remote Implementation Rules
+
+- Keep remote transport behind provider-selected `RemoteTransport` abstractions.
+- Keep Orbit auth/session contract-driven around typed `deviceCode` polling.
+- Persist remote backend token changes through shared settings-core helpers to avoid stale overwrite races.
+- Invalidate cached remote backend clients when transport-affecting settings change.
+- Desktop CLI integrations must resolve from `PATH` plus deterministic fallback install locations.
+
+### Frontend Design System
+
+- Use DS primitives/tokens first for modal, toast, panel, and popover shell behavior.
+- Keep feature CSS focused on feature-specific layout/content; do not duplicate DS shell chrome.
+- Use DS toast sub-primitives for shared toast structure.
+- Modal consumers must provide accessible labels.
+- Tablist UIs must use proper tab semantics and move selection and focus together.
+- For DS migration follow-ups, run `npm run codemod:ds:dry` and keep DS lint guardrails green.
+
+### Frontend UX and Performance
+
+- Automatic message pinning should be immediate and non-animated; smooth scrolling is user-initiated only.
+- High-frequency reducers must return previous state for no-op transitions.
+- Memoize high-churn UI shells when unrelated app updates can impact input responsiveness.
+- Keep a single trigger path for accelerator-backed actions to avoid duplicate execution and telemetry.
+
+### Release and Telemetry
+
+- Keep Sentry telemetry enabled unless the user explicitly asks to remove or replace it.
+- Release metadata must be generated from normalized artifact names and validated before publishing.
+
+## 2026-02-07 21:35
+Context: Memory compaction model update
 Type: decision
-Event: Added additive design-system primitives (`ModalShell`, `ToastViewport`/`ToastCard`, `PanelFrame`/`PanelHeader`) and DS token alias styles with backward-compatible legacy class usage.
-Action: Migrated target families to use primitives without removing existing class hooks; extracted diff unsafe CSS theme values into a DS module.
-Rule: For modal/toast/panel shell changes, use DS primitives first and keep legacy classes as compatibility aliases until phase-2 cleanup is complete.
+Rule: Keep `memory/decisions.md` as a compact canonical rule register and archive detailed historical decision timelines under `memory/archive/`.
+Why: This improves retrieval quality for future agents and reduces low-signal duplicate context during implementation.
 
-## 2026-02-07 08:51
-Context: Design-system migration phase 2 cleanup (modals/toasts/panels/diff)
+## 2026-02-07 21:34
+Context: Message file-link display controls
 Type: decision
-Event: Removed targeted legacy shell class wiring and consolidated duplicated shell chrome into DS styles (`ds-modal`, `ds-toast`, `ds-panel`) while keeping feature classes for content/layout only.
-Action: Prompt modals now use `ModalShell` without per-modal backdrop/card selectors, toasts share DS card chrome/animation/tokens, panel shell layout moved into `PanelFrame` styles, and diff theme defaults are sourced from DS tokens with theme-specific overrides in `ds-diff.css`.
-Rule: New or refactored modal/toast/panel code must extend DS primitives/tokens first and only keep feature selectors for non-shared behavior.
+Rule: Keep file-link parent path display in messages behind `showMessageFilePath`, defaulting to enabled.
+Why: This preserves existing context-rich defaults while allowing users to reduce visual noise in message file references.
 
-## 2026-02-07 09:48
-Context: Design-system migration hardening (toast semantics + modal shell consistency)
-Type: decision
-Event: Decoupled DS toast styling from feature class names and migrated settings modal to `ModalShell`.
-Action: Added `ToastTitle`/`ToastBody` primitives with DS-owned classes, tightened toast role typing to `AriaRole`, updated migrated toasts to use semantic primitives, and switched `SettingsView` to `ModalShell` via `cardClassName`.
-Rule: DS primitives must own shared semantic classes and shell composition; feature components should only add feature-local classes/behavior.
-
-## 2026-02-07 10:48
-Context: Accessibility hardening for DS modal/panel primitives
-Type: decision
-Event: Added explicit tab semantics/keyboard navigation to `PanelTabs` and exposed modal labelling props on `ModalShell`.
-Action: `PanelTabs` now uses `role="tab"` + `aria-selected` + roving `tabIndex` with arrow/home/end navigation; `ModalShell` now accepts `ariaLabel`/`ariaLabelledBy`/`ariaDescribedBy` and consumers pass labels (including `SettingsView` via `ariaLabelledBy`).
-Rule: New modal consumers must provide an accessible label via `ModalShell`, and tablist UIs should use proper tab semantics instead of `aria-current`.
-
-## 2026-02-07 10:58
-Context: Design-system migration phase 2 completion for toasts
-Type: decision
-Event: Added shared toast sub-primitives for repeated header/action/error patterns and migrated approval/error/update toast families to use them.
-Action: Introduced `ToastHeader`, `ToastActions`, and `ToastError` in DS primitives, moved shared styles into `ds-toast.css`, and reduced feature toast CSS to family-specific positioning/content rules.
-Rule: Toast family updates must use DS toast sub-primitives for shared structure/patterns and keep feature styles focused on family-specific behavior only.
-
-## 2026-02-07 11:11
-Context: Design-system migration phase 3 guardrails
-Type: decision
-Event: Implemented lint guardrails and codemod automation for modal/toast/panel/diff DS adoption.
-Action: Added targeted `no-restricted-syntax` checks in `.eslintrc.cjs`, created codemods (`modal-shell`, `panel-shell`, `toast-shell`) with dry-run/allowlist support, and wired package scripts (`codemod:ds:dry`, `codemod:ds`, `lint:ds`).
-Rule: DS migration follow-ups should first run `npm run codemod:ds:dry` and keep DS guardrail lint rules green before merging UI shell changes.
-
-## 2026-02-07 11:15
-Context: Design-system migration phase 3 legacy selector cleanup
-Type: decision
-Event: Manual QA sign-off was completed and the remaining unreferenced legacy selectors were removed.
-Action: Deleted dead selectors from `src/styles/diff.css` (`git-panel-title`, `git-panel-title-button`, `git-panel-switch-icon`, `git-panel-icon`, `git-pr-branches`) and revalidated with lint/typecheck/tests.
-Rule: After DS migration QA sign-off, remove only selectors with verified zero callsites and rerun full validation.
-
-## 2026-02-07 11:26
-Context: AGENTS.md design-system guidance refresh
-Type: decision
-Event: Updated AGENTS design-system guidance to match the final implementation state after Phase 3.
-Action: Documented toast/panel sub-primitives, Phase 3 guardrail/codemod workflow, and current migration status in `AGENTS.md`.
-Rule: Keep `AGENTS.md` DS guidance aligned with the latest enforced primitives/scripts and migration state after each DS phase change.
-
-## 2026-02-07 11:22
-Context: PanelTabs keyboard navigation reliability
-Type: decision
-Event: Arrow/Home/End keyboard navigation in `PanelTabs` could stall because selection changed without moving focus.
-Action: Navigation now derives from the active tab index and programmatically focuses the newly selected tab; added `PanelTabs.test.tsx` coverage for focus + selection progression.
-Rule: Tab keyboard navigation must always move both selection state and DOM focus together.
-
-## 2026-02-07 11:27
-Context: AGENTS canonical style
+## 2026-02-07 21:22
+Context: Settings IA for mobile/backend setup
 Type: preference
-Event: User requested removing phase-progress wording from `AGENTS.md` so it stays canonical and current-state only.
-Action: Removed phase-specific wording from the design-system enforcement section title.
-Rule: Keep `AGENTS.md` free of phase labels/progress framing; document canonical behavior and workflow only.
+Rule: Keep backend/mobile connectivity controls in a dedicated `Server` settings section (not `Codex`), with explicit mobile-access daemon controls.
+Why: Desktop Codex configuration and remote/mobile server operations are different mental models and should be separated in UX.
 
-## 2026-02-07 11:37
-Context: Design-system popover standardization
+## 2026-02-08 06:27
+Context: Server settings desktop/mobile behavior
 Type: preference
-Event: User requested all app popovers use one consistent pattern with iconized precomputed menu entries and Escape/outside-click dismissal behavior.
-Action: Added DS popover primitives/styles and migrated popover/dropdown callsites (branch/worktree menus, sidebar add/sort/account menus, launch script, open-app menus, workspace-home run mode/models, composer suggestions, file preview) to use shared shell semantics and dismiss behavior.
-Rule: New popover/dropdown UI should use DS popover primitives, include leading icons for precomputed action lists, and close on Escape/outside click unless explicitly exempted.
+Rule: Keep mobile access controls visible in `Server` regardless of desktop backend mode; `backendMode` only affects whether desktop traffic is local or routed through remote transport.
+Why: The desktop app should stay local by default while still allowing users to configure and operate the mobile daemon path.
 
-## 2026-02-07 11:40
-Context: AGENTS canonical DS documentation update
-Type: decision
-Event: Canonical design-system guidance needed to include popover primitives and style sources after popover migration.
-Action: Updated `AGENTS.md` design-system section to list `PopoverPrimitives.tsx`, `PopoverSurface`/`PopoverMenuItem`, and `ds-popover.css` plus popover-specific do/don't guidance.
-Rule: Keep AGENTS design-system inventory aligned with currently implemented DS primitives and styles, without claiming guardrails that are not implemented.
-
-## 2026-02-07 11:42
-Context: Popover design-system regression guardrails
-Type: decision
-Event: Added lint enforcement to prevent regressions back to raw popover shell/menu-row markup in migrated files.
-Action: Added `.eslintrc.cjs` popover override covering migrated popover components, requiring `PopoverSurface`/`PopoverMenuItem` patterns and keeping DS token color-literal restrictions in scope.
-Rule: Popover changes in guarded files must keep DS primitive markup and pass lint before merge.
-
-## 2026-02-07 12:03
-Context: Frontend telemetry regression restoration
+## 2026-02-08 06:46
+Context: iOS runtime backend defaults
 Type: preference
-Event: User requested full restoration of Sentry reporting removed in `83a37da`.
-Action: Reintroduced `@sentry/react`, restored `Sentry.init` in `src/main.tsx`, and re-enabled removed capture/metrics callsites in app/workspace/thread/file-link flows.
-Rule: Keep Sentry telemetry enabled unless the user explicitly asks to deprecate or replace it with another telemetry provider.
+Rule: Default backend mode to `remote` on iOS/mobile runtime while keeping desktop defaults `local`.
+Why: Mobile clients must connect through the remote daemon flow, while desktop continues to run local-first.
 
-## 2026-02-07 12:17
-Context: Duplicate telemetry prevention for New Agent creation
+## 2026-02-08 07:02
+Context: Tauri iOS target build with vendored libgit2
 Type: decision
-Event: New Agent creation could be triggered twice for `Cmd+N` because both a web keydown hook and native menu accelerator path were active.
-Action: Removed `useNewAgentShortcut` from `useWorkspaceActions` so New Agent creation flows through a single menu/command path (`useAppMenuEvents` + configured menu accelerators), and added focused Composer tests to assert one send call for Enter and send-button triggers.
-Rule: For accelerator-backed actions, keep a single trigger path to avoid double action execution and duplicate telemetry.
+Rule: Keep iOS Xcode target linker flags including `-lz` and `-liconv` in `src-tauri/gen/apple/codex-monitor.xcodeproj/project.pbxproj` (and mirrored in `src-tauri/gen/apple/project.yml`).
+Why: Vendored `libgit2` objects require zlib/iconv symbols at app link time, and iOS build fails without explicit flags.
 
-## 2026-02-07 12:27
-Context: Windows updater 404 from release metadata
-Type: decision
-Event: Published `latest.json` referenced asset names that did not match uploaded release asset filenames, causing updater download 404s.
-Action: Updated `.github/workflows/release.yml` to normalize artifact filenames before publish, URL-encode generated `latest.json` URLs, and validate that every `latest.json` URL maps to an actual artifact before creating the release.
-Rule: Generate `latest.json` URLs from normalized artifact filenames and fail the release job if any referenced asset is missing.
-
-## 2026-02-07 13:26
-Context: Mobile remote architecture direction
+## 2026-02-08 07:19
+Context: iOS app icon composition
 Type: preference
-Event: User chose Cloudflare as the bridge for mobile-to-desktop remote backend connectivity and questioned duplicating backend logic in-app.
-Action: Adopted plan direction toward a Cloudflare bridge layer (realtime transport + durable queue/snapshots) while keeping daemon/core logic as the execution authority on desktop.
-Rule: Mobile remote mode should connect through a Cloudflare bridge to the desktop daemon, not a duplicated backend implementation on-device.
+Rule: Keep iOS app icons regenerated from trimmed source artwork at high fill (~95% canvas) instead of macOS-style inset composition.
+Why: iOS icons should occupy most of the masked tile area; desktop-style inset icons look undersized on Home Screen.
 
-## 2026-02-07 13:26
-Context: Remote-mode implementation strategy
-Type: decision
-Event: Command/event parity analysis showed major mismatch between local Tauri commands and daemon RPC coverage.
-Action: Established parity-first roadmap: complete daemon RPC surface and remote adapter routing before shipping mobile remote mode.
-Rule: Remote/mobile rollouts must gate on command/event parity with local mode for user-facing features.
-
-## 2026-02-07 13:31
-Context: Mobile bridge implementation direction
+## 2026-02-08 07:24
+Context: iOS app icon full-bleed requirement
 Type: preference
-Event: User explicitly requested to ignore PR #31 and CloudKit for mobile architecture planning.
-Action: Canonical mobile plan now targets Cloudflare bridge only, with no dependency on CloudKit or PR #31 implementation details.
-Rule: Do not propose CloudKit/PR31-based mobile backend patterns unless user re-requests them.
+Rule: Keep iOS AppIcon assets fully opaque and full-bleed (no transparent padding), with artwork scaled for edge-to-edge appearance under the iOS mask.
+Why: Inset/transparent icon composition reads like desktop icon treatment and looks undersized on iOS Home Screen.
+
+## 2026-02-08 07:39
+Context: iOS documentation canonicalization
+Type: preference
+Rule: Keep `README.md` and `AGENTS.md` explicit that iOS support is WIP and document simulator/device launch via `scripts/build_run_ios.sh` and `scripts/build_run_ios_device.sh`, including signing/team requirements.
+Why: This prevents setup ambiguity and keeps iOS onboarding repeatable while mobile support is still maturing.
+
+## 2026-02-08 07:40
+Context: AGENTS iOS section brevity
+Type: preference
+Rule: Keep AGENTS iOS guidance minimal: supported status + simulator/device script commands only.
+Why: The user wants AGENTS concise and operational, not detailed setup prose.
+
+## 2026-02-08 07:43
+Context: iOS frontend layout selection
+Type: preference
+Rule: Force iOS/mobile runtime into phone layout mode so the tab-bar mobile shell is always used at app startup.
+Why: Width-only layout detection can select tablet shell on iOS and hide the expected mobile tab bar.
+
+## 2026-02-08 08:09
+Context: iOS workspace source of truth
+Type: preference
+Rule: In iOS remote mode, workspaces/projects must come from the daemon backend; do not rely on standalone iOS-local project creation.
+Why: Mobile clients are intended to operate against the host daemon state and should reflect daemon-managed workspaces.
+
+## 2026-02-08 08:15
+Context: Settings modal mobile navigation usability
+Type: decision
+Rule: For phone-sized settings viewports (`max-width: 720px`), use master/detail navigation (section list first, detail view second with a back action) instead of horizontal tab-strip navigation.
+Why: Horizontal nav compression breaks section labels and readability on narrow screens; master/detail keeps section selection and content legible.
+
+## 2026-02-08 08:22
+Context: Reusable mobile master-list navigation styling
+Type: decision
+Rule: Use design-system panel navigation primitives (`PanelNavList` + `PanelNavItem`) for section-list style navigation, enabling optional disclosure chevrons for mobile master/detail patterns.
+Why: This keeps section-list interactions visually consistent and reusable across features instead of re-implementing one-off list row styles.
+
+## 2026-02-08 08:33
+Context: Compact sidebar footer/action stacking
+Type: preference
+Rule: In compact/mobile sidebar layouts, place account/settings corner actions in normal flow under the usage widget instead of absolute bottom positioning.
+Why: Absolute positioning overlaps usage bars on narrow viewports and causes control collisions.
+
+## 2026-02-08 15:32
+Context: Settings/i18n 文案迁移约束
+Type: decision
+Rule: Settings 相关 UI 文案新增或改动时，必须先补齐 `en`/`zh-CN` 双语 key，再在组件中引用。
+Why: 先定义 key 可避免回流硬编码文案，并保证 i18n 分支的持续可维护性。
+
+## 2026-02-08 16:20
+Context: i18 分支上游同步策略
+Type: preference
+Rule: 同步上游时以上游功能实现为准，仅保留最小 i18 差异（简体中文文档与语言能力），避免引入功能分叉。
+Why: 保持 fork 长期可同步，降低冲突面积与回归风险。
+
+## 2026-02-08 17:54
+Context: Fork 同步触发词执行规范
+Type: preference
+Rule: 触发“同步fork”流程时，文档需保持简体中文并同步上游新增内容（去重后汉化）；`memory/` 目录必须保留并持续更新；功能实现以上游为准，仅追加 i18 适配。
+Why: 在不偏离上游主线功能的前提下，持续保障中文可读性与本地记忆机制稳定。
+
+## 2026-02-08 19:31
+Context: Settings i18n wave-2 批量补齐
+Type: decision
+Rule: `src/features/settings/components/sections/*` 与 `SettingsView` 的用户可见文案必须统一走 `useAppTranslation("settings")`，禁止新增硬编码标签/placeholder/aria 文案。
+Why: Settings 面板是 i18n 漏网高发区，统一入口可降低回归并让双语资源可追踪。

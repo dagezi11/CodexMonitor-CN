@@ -1,58 +1,58 @@
-# App-Server Events Reference (Codex `41b4962b0a7f5d73bb23d329ad9bb742545f6a2c`)
+# App-Server 事件参考（Codex `41b4962b0a7f5d73bb23d329ad9bb742545f6a2c`）
 
-This document helps agents quickly answer:
-- Which app-server events CodexMonitor supports right now.
-- Which app-server requests CodexMonitor sends right now.
-- Where to look in CodexMonitor to add support.
-- Where to look in `../Codex` to compare event lists and find emitters.
+本文档用于帮助 agent 快速回答以下问题：
+- CodexMonitor 当前支持哪些 app-server 事件。
+- CodexMonitor 当前会发送哪些 app-server 请求。
+- 在 CodexMonitor 中应去哪里补齐支持。
+- 在 `../Codex` 中应去哪里对照事件清单并定位发射点。
 
-When updating this document:
-1. Update the Codex hash in the title using `git -C ../Codex rev-parse HEAD`.
-2. Compare Codex events vs CodexMonitor routing.
-3. Compare Codex request methods vs CodexMonitor outgoing request methods.
-4. Update supported and missing lists below.
+更新本文档时请执行：
+1. 使用 `git -C ../Codex rev-parse HEAD` 更新标题中的 Codex hash。
+2. 对比 Codex 事件清单与 CodexMonitor 路由清单。
+3. 对比 Codex 请求方法清单与 CodexMonitor 出站请求方法。
+4. 更新下方「已支持」和「缺失」列表。
 
-## Where To Look In CodexMonitor
+## 在 CodexMonitor 中的关键位置
 
-Primary app-server event source of truth (methods + typed parsing helpers):
+app-server 事件主事实来源（方法清单 + 类型化解析辅助）：
 - `src/utils/appServerEvents.ts`
 
-Primary event router:
+主事件路由器：
 - `src/features/app/hooks/useAppServerEvents.ts`
 
-Event handler composition:
+事件处理组合层：
 - `src/features/threads/hooks/useThreadEventHandlers.ts`
 
-Thread/turn/item handlers:
+线程 / turn / item 处理器：
 - `src/features/threads/hooks/useThreadTurnEvents.ts`
 - `src/features/threads/hooks/useThreadItemEvents.ts`
 - `src/features/threads/hooks/useThreadApprovalEvents.ts`
 - `src/features/threads/hooks/useThreadUserInputEvents.ts`
 
-State updates:
+状态更新：
 - `src/features/threads/hooks/useThreadsReducer.ts`
 
-Item normalization / display shaping:
+Item 归一化 / 展示整形：
 - `src/utils/threadItems.ts`
 
-UI rendering of items:
+Item 的 UI 渲染：
 - `src/features/messages/components/Messages.tsx`
 
-Primary outgoing request layer:
+出站请求主链路：
 - `src/services/tauri.ts`
 - `src-tauri/src/shared/codex_core.rs`
 - `src-tauri/src/codex/mod.rs`
 - `src-tauri/src/bin/codex_monitor_daemon.rs`
 
-## Supported Events (Current)
+## 已支持事件（当前）
 
-These are the app-server methods currently supported in
-`src/utils/appServerEvents.ts` (`SUPPORTED_APP_SERVER_METHODS`) and routed in
-`useAppServerEvents.ts`.
+以下 app-server 方法当前已在
+`src/utils/appServerEvents.ts`（`SUPPORTED_APP_SERVER_METHODS`）中声明，
+并在 `useAppServerEvents.ts` 中路由：
 
 - `codex/connected`
-- `*requestApproval` methods (matched via
-  `isApprovalRequestMethod(method)`; suffix check)
+- `*requestApproval` 方法（通过
+  `isApprovalRequestMethod(method)` 按后缀匹配）
 - `item/tool/requestUserInput`
 - `item/agentMessage/delta`
 - `turn/started`
@@ -76,26 +76,25 @@ These are the app-server methods currently supported in
 - `item/commandExecution/outputDelta`
 - `item/commandExecution/terminalInteraction`
 - `item/fileChange/outputDelta`
-- `codex/event/skills_update_available` (handled via
-  `isSkillsUpdateAvailableEvent(...)` in `useSkills.ts`)
+- `codex/event/skills_update_available`（通过
+  `useSkills.ts` 中的 `isSkillsUpdateAvailableEvent(...)` 处理）
 
-## Conversation Compaction Signals (Codex v2)
+## 会话压缩信号（Codex v2）
 
-Codex currently exposes two compaction signals:
+Codex 当前提供两类压缩信号：
 
-- Preferred: `item/started` + `item/completed` with `item.type = "contextCompaction"` (`ThreadItem::ContextCompaction`).
-- Deprecated: `thread/compacted` (`ContextCompactedNotification`).
+- 首选：`item/started` + `item/completed`，并且 `item.type = "contextCompaction"`（`ThreadItem::ContextCompaction`）。
+- 已弃用：`thread/compacted`（`ContextCompactedNotification`）。
 
-CodexMonitor status:
+CodexMonitor 当前状态：
 
-- It routes `item/started` and `item/completed`, so the preferred signal reaches the frontend event layer.
-- It renders/stores `contextCompaction` items via the normal item lifecycle.
-- It no longer routes deprecated `thread/compacted`.
+- 已路由 `item/started` 与 `item/completed`，因此首选信号能够到达前端事件层。
+- 已通过常规 item 生命周期存储 / 渲染 `contextCompaction` 项。
+- 已不再路由已弃用的 `thread/compacted`。
 
-## Missing Events (Codex v2 Notifications)
+## 缺失事件（Codex v2 Notifications）
 
-Compared against Codex app-server protocol v2 notifications, the following
-events are currently not routed:
+与 Codex app-server protocol v2 通知对比后，以下事件当前尚未路由：
 
 - `rawResponseItem/completed`
 - `item/mcpToolCall/progress`
@@ -104,9 +103,9 @@ events are currently not routed:
 - `configWarning`
 - `windows/worldWritableWarning`
 
-## Supported Requests (CodexMonitor -> App-Server, v2)
+## 已支持请求（CodexMonitor -> App-Server, v2）
 
-These are v2 request methods CodexMonitor currently sends to Codex app-server:
+CodexMonitor 当前会向 Codex app-server 发送以下 v2 请求方法：
 
 - `thread/start`
 - `thread/resume`
@@ -128,9 +127,9 @@ These are v2 request methods CodexMonitor currently sends to Codex app-server:
 - `skills/list`
 - `app/list`
 
-## Missing Requests (Codex v2 Request Methods)
+## 缺失请求（Codex v2 Request Methods）
 
-Compared against Codex v2 request methods, CodexMonitor currently does not send:
+对照 Codex v2 请求方法后，CodexMonitor 当前尚未发送：
 
 - `thread/unarchive`
 - `thread/rollback`
@@ -155,75 +154,73 @@ Compared against Codex v2 request methods, CodexMonitor currently does not send:
 - `item/tool/call`
 - `account/chatgptAuthTokens/refresh`
 
-## Where To Look In ../Codex
+## 在 `../Codex` 中的关键位置
 
-Start here for the authoritative v2 notification list:
+先从这里开始（v2 通知方法权威来源）：
 - `../Codex/codex-rs/app-server-protocol/src/protocol/common.rs`
 
-Useful follow-ups:
-- Notification payload types:
+后续常用定位：
+- 通知载荷类型：
   - `../Codex/codex-rs/app-server-protocol/src/protocol/v2.rs`
-- Emitters / wiring from core events to server notifications:
+- 从 core 事件到 server 通知的发射 / 组装：
   - `../Codex/codex-rs/app-server/src/bespoke_event_handling.rs`
-- Human-readable protocol notes:
+- 面向人的协议说明：
   - `../Codex/codex-rs/app-server/README.md`
 
-## Quick Comparison Workflow
+## 快速对照流程（事件）
 
-Use this workflow to update the lists above:
+按以下步骤更新上面的事件清单：
 
-1. Get the current Codex hash:
+1. 获取当前 Codex hash：
    - `git -C ../Codex rev-parse HEAD`
-2. List Codex v2 notification methods:
+2. 列出 Codex v2 通知方法：
    - `rg -n \"=> \\\".*\\\" \\(v2::.*Notification\\)\" ../Codex/codex-rs/app-server-protocol/src/protocol/common.rs`
-3. List CodexMonitor routed methods:
+3. 列出 CodexMonitor 已路由方法：
    - `rg -n \"SUPPORTED_APP_SERVER_METHODS\" src/utils/appServerEvents.ts`
-4. Update the Supported and Missing sections.
+4. 更新「已支持事件」与「缺失事件」。
 
-## Quick Request Comparison Workflow
+## 快速对照流程（请求）
 
-Use this workflow to update request support lists:
+按以下步骤更新请求支持清单：
 
-1. Get the current Codex hash:
+1. 获取当前 Codex hash：
    - `git -C ../Codex rev-parse HEAD`
-2. List Codex request methods:
+2. 列出 Codex 请求方法：
    - `rg -n \"=> \\\".*\\\" \\{\" ../Codex/codex-rs/app-server-protocol/src/protocol/common.rs`
-3. List CodexMonitor outgoing requests:
+3. 列出 CodexMonitor 出站请求：
    - `rg -n \"send_request\\(\\\"\" src-tauri/src -g\"*.rs\"`
-4. Update the Supported Requests and Missing Requests sections.
+4. 更新「已支持请求」与「缺失请求」。
 
-## Schema Drift Workflow (Best)
+## Schema 漂移排查流程（推荐）
 
-Use this when the method list is unchanged but behavior looks off.
+当方法名清单没变化，但行为出现偏差时使用。
 
-1. Confirm the current Codex hash:
+1. 确认当前 Codex hash：
    - `git -C ../Codex rev-parse HEAD`
-2. Inspect the authoritative notification structs:
+2. 查看权威通知结构体：
    - `rg -n \"struct .*Notification\" ../Codex/codex-rs/app-server-protocol/src/protocol/v2.rs`
-3. For a specific method, jump to its struct definition:
-   - Example: `rg -n \"struct TurnPlanUpdatedNotification|struct ThreadTokenUsageUpdatedNotification|struct AccountRateLimitsUpdatedNotification|struct ItemStartedNotification|struct ItemCompletedNotification\" ../Codex/codex-rs/app-server-protocol/src/protocol/v2.rs`
-4. Compare payload shapes to the router expectations:
-   - Parser/source of truth: `src/utils/appServerEvents.ts`
-   - Router: `src/features/app/hooks/useAppServerEvents.ts`
-   - Turn/plan/token/rate-limit normalization: `src/features/threads/utils/threadNormalize.ts`
-   - Item shaping for display: `src/utils/threadItems.ts`
-5. Verify the ThreadItem schema (many UI issues start here):
+3. 针对某个方法跳转到对应 struct 定义：
+   - 示例：`rg -n \"struct TurnPlanUpdatedNotification|struct ThreadTokenUsageUpdatedNotification|struct AccountRateLimitsUpdatedNotification|struct ItemStartedNotification|struct ItemCompletedNotification\" ../Codex/codex-rs/app-server-protocol/src/protocol/v2.rs`
+4. 对照载荷结构与路由层预期：
+   - 解析事实来源：`src/utils/appServerEvents.ts`
+   - 路由：`src/features/app/hooks/useAppServerEvents.ts`
+   - turn/plan/token/rate-limit 归一化：`src/features/threads/utils/threadNormalize.ts`
+   - 用于展示的 item 整形：`src/utils/threadItems.ts`
+5. 校验 ThreadItem schema（很多 UI 问题源头在这里）：
    - `rg -n \"enum ThreadItem|CommandExecution|FileChange|McpToolCall|EnteredReviewMode|ExitedReviewMode|ContextCompaction\" ../Codex/codex-rs/app-server-protocol/src/protocol/v2.rs`
-6. Check for camelCase vs snake_case mismatches:
-   - The protocol uses `#[serde(rename_all = \"camelCase\")]`, but fields are often declared in snake_case.
-   - CodexMonitor generally defends against this by checking both forms (for example in `threadNormalize.ts` and `useAppServerEvents.ts`), while centralizing method/type parsing in `appServerEvents.ts`.
-7. If a schema change is found, fix it at the edges first:
-   - Prefer updating `src/utils/appServerEvents.ts`, `useAppServerEvents.ts`, and `threadNormalize.ts` rather than spreading conditionals into components.
+6. 检查 camelCase 与 snake_case 不一致：
+   - 协议层使用 `#[serde(rename_all = \"camelCase\")]`，但字段声明常见 snake_case。
+   - CodexMonitor 通常会同时兼容两种写法（如 `threadNormalize.ts` 与 `useAppServerEvents.ts`），并将方法 / 类型解析集中在 `appServerEvents.ts`。
+7. 如果发现 schema 变更，优先在边界层修复：
+   - 优先更新 `src/utils/appServerEvents.ts`、`useAppServerEvents.ts`、`threadNormalize.ts`，避免将条件分支扩散到组件层。
 
-## Notes
+## 备注
 
-- Not all missing events must be surfaced in the conversation view; some may
-  be better as toasts, settings warnings, or debug-only entries.
-- For conversation view changes, prefer:
-  - Add method/type support in `src/utils/appServerEvents.ts`
-  - Route in `useAppServerEvents.ts`
-  - Handle in `useThreadTurnEvents.ts` or `useThreadItemEvents.ts`
-  - Update state in `useThreadsReducer.ts`
-  - Render in `Messages.tsx`
-- `turn/diff/updated` is routed in `useAppServerEvents.ts` but currently has no
-  downstream handler wired in `useThreadEventHandlers.ts`.
+- 并非所有缺失事件都应该进入对话视图；部分更适合作为 toast、设置警告或 debug-only 项。
+- 对话视图改动建议遵循：
+  - 在 `src/utils/appServerEvents.ts` 增加方法 / 类型支持
+  - 在 `useAppServerEvents.ts` 路由
+  - 在 `useThreadTurnEvents.ts` 或 `useThreadItemEvents.ts` 处理
+  - 在 `useThreadsReducer.ts` 更新状态
+  - 在 `Messages.tsx` 渲染
+- `turn/diff/updated` 虽已在 `useAppServerEvents.ts` 路由，但目前尚未在 `useThreadEventHandlers.ts` 中接入下游处理器。

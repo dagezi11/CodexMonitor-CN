@@ -1,4 +1,9 @@
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
+import { i18n } from "../features/i18n/i18n";
+
+beforeEach(async () => {
+  await i18n.changeLanguage("en");
+});
 
 if (!("IS_REACT_ACT_ENVIRONMENT" in globalThis)) {
   Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", {

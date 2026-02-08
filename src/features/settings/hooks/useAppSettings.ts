@@ -16,18 +16,30 @@ import {
 } from "../../app/constants";
 import { normalizeOpenAppTargets } from "../../app/utils/openApp";
 import { getDefaultInterruptShortcut, isMacPlatform } from "../../../utils/shortcuts";
+import type { AppLanguagePreference } from "../../../types";
+import { isMobilePlatform } from "../../../utils/platformPaths";
 
 const allowedThemes = new Set(["system", "light", "dark", "dim"]);
 const allowedPersonality = new Set(["friendly", "pragmatic"]);
+const allowedLanguages = new Set<AppLanguagePreference>(["system", "zh-CN", "en"]);
 
 function buildDefaultSettings(): AppSettings {
   const isMac = isMacPlatform();
+  const isMobile = isMobilePlatform();
   return {
     codexBin: null,
     codexArgs: null,
-    backendMode: "local",
+    backendMode: isMobile ? "remote" : "local",
+    remoteBackendProvider: "tcp",
     remoteBackendHost: "127.0.0.1:4732",
     remoteBackendToken: null,
+    orbitWsUrl: null,
+    orbitAuthUrl: null,
+    orbitRunnerName: null,
+    orbitAutoStartRunner: false,
+    orbitUseAccess: false,
+    orbitAccessClientId: null,
+    orbitAccessClientSecretRef: null,
     defaultAccessMode: "current",
     reviewDeliveryMode: "inline",
     composerModelShortcut: isMac ? "cmd+shift+m" : "ctrl+shift+m",
@@ -52,7 +64,9 @@ function buildDefaultSettings(): AppSettings {
     lastComposerReasoningEffort: null,
     uiScale: UI_SCALE_DEFAULT,
     theme: "system",
+    uiLanguage: "system",
     usageShowRemaining: false,
+    showMessageFilePath: true,
     uiFontFamily: DEFAULT_UI_FONT_FAMILY,
     codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
     codeFontSize: CODE_FONT_SIZE_DEFAULT,
@@ -112,6 +126,9 @@ function normalizeAppSettings(settings: AppSettings): AppSettings {
     codexArgs: settings.codexArgs?.trim() ? settings.codexArgs.trim() : null,
     uiScale: clampUiScale(settings.uiScale),
     theme: allowedThemes.has(settings.theme) ? settings.theme : "system",
+    uiLanguage: allowedLanguages.has(settings.uiLanguage)
+      ? settings.uiLanguage
+      : "system",
     uiFontFamily: normalizeFontFamily(
       settings.uiFontFamily,
       DEFAULT_UI_FONT_FAMILY,

@@ -106,6 +106,8 @@ import { useWorkspaceLaunchScripts } from "./features/app/hooks/useWorkspaceLaun
 import { useWorktreeSetupScript } from "./features/app/hooks/useWorktreeSetupScript";
 import { useGitCommitController } from "./features/app/hooks/useGitCommitController";
 import { WorkspaceHome } from "./features/workspaces/components/WorkspaceHome";
+import { MobileServerSetupWizard } from "./features/mobile/components/MobileServerSetupWizard";
+import { useMobileServerSetup } from "./features/mobile/hooks/useMobileServerSetup";
 import { useWorkspaceHome } from "./features/workspaces/hooks/useWorkspaceHome";
 import { useWorkspaceAgentMd } from "./features/workspaces/hooks/useWorkspaceAgentMd";
 import { pickWorkspacePath } from "./services/tauri";
@@ -231,6 +233,19 @@ function MainApp() {
     addDebugEntry,
     queueSaveSettings,
   });
+  const {
+    isMobileRuntime,
+    showMobileSetupWizard,
+    mobileSetupWizardProps,
+    handleMobileConnectSuccess,
+  } = useMobileServerSetup({
+    appSettings,
+    appSettingsLoading,
+    queueSaveSettings,
+    refreshWorkspaces,
+  });
+  const updaterEnabled = !isMobileRuntime;
+
   const workspacesById = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
     [workspaces],
@@ -301,6 +316,7 @@ function MainApp() {
     handleTestNotificationSound,
     handleTestSystemNotification,
   } = useUpdaterController({
+    enabled: updaterEnabled,
     notificationSoundsEnabled: appSettings.notificationSoundsEnabled,
     systemNotificationsEnabled: appSettings.systemNotificationsEnabled,
     getWorkspaceName,
@@ -754,6 +770,14 @@ function MainApp() {
     },
     [threadListSortKey, workspaces, listThreadsForWorkspace],
   );
+
+  const handleRefreshAllWorkspaceThreads = useCallback(() => {
+    const connectedWorkspaces = workspaces.filter((workspace) => workspace.connected);
+    connectedWorkspaces.forEach((workspace) => {
+      resetWorkspaceThreads(workspace.id);
+      void listThreadsForWorkspace(workspace);
+    });
+  }, [workspaces, resetWorkspaceThreads, listThreadsForWorkspace]);
 
   useResponseRequiredNotificationsController({
     systemNotificationsEnabled: appSettings.systemNotificationsEnabled,
@@ -1799,6 +1823,7 @@ function MainApp() {
     threadListCursorByWorkspace,
     threadListSortKey,
     onSetThreadListSortKey: handleSetThreadListSortKey,
+    onRefreshAllThreads: handleRefreshAllWorkspaceThreads,
     activeWorkspaceId,
     activeThreadId,
     activeItems,
@@ -1809,6 +1834,7 @@ function MainApp() {
     onCancelSwitchAccount: handleCancelSwitchAccount,
     accountSwitching,
     codeBlockCopyUseModifier: appSettings.composerCodeBlockCopyUseModifier,
+    showMessageFilePath: appSettings.showMessageFilePath,
     openAppTargets: appSettings.openAppTargets,
     openAppIconById,
     selectedOpenAppId: appSettings.selectedOpenAppId,
@@ -1935,6 +1961,7 @@ function MainApp() {
     onCopyThread: handleCopyThread,
     onToggleTerminal: handleToggleTerminal,
     showTerminalButton: !isCompact,
+    showWorkspaceTools: !isCompact,
     launchScript: launchScriptState.launchScript,
     launchScriptEditorOpen: launchScriptState.editorOpen,
     launchScriptDraft: launchScriptState.draftScript,
@@ -2398,12 +2425,16 @@ function MainApp() {
           scaleShortcutText,
           onTestNotificationSound: handleTestNotificationSound,
           onTestSystemNotification: handleTestSystemNotification,
+          onMobileConnectSuccess: handleMobileConnectSuccess,
           dictationModelStatus: dictationModel.status,
           onDownloadDictationModel: dictationModel.download,
           onCancelDictationDownload: dictationModel.cancel,
           onRemoveDictationModel: dictationModel.remove,
         }}
       />
+      {showMobileSetupWizard && (
+        <MobileServerSetupWizard {...mobileSetupWizardProps} />
+      )}
     </div>
   );
 }

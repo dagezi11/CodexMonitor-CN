@@ -16,6 +16,7 @@ import {
 } from "../../design-system/components/popover/PopoverPrimitives";
 import { GENERIC_APP_ICON, getKnownOpenAppIcon } from "../utils/openAppIcons";
 import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type OpenTarget = {
   id: string;
@@ -39,6 +40,7 @@ export function OpenAppMenu({
   onSelectOpenAppId,
   iconById = {},
 }: OpenAppMenuProps) {
+  const { t } = useAppTranslation("common");
   const [openMenuOpen, setOpenMenuOpen] = useState(false);
   const openMenuRef = useRef<HTMLDivElement | null>(null);
   const availableTargets =
@@ -104,7 +106,7 @@ export function OpenAppMenu({
       },
     });
     pushErrorToast({
-      title: "Couldn’t open workspace",
+      title: t("openApp.couldNotOpenWorkspace"),
       message,
     });
     console.warn("Failed to open workspace in target app", {
@@ -183,10 +185,10 @@ export function OpenAppMenu({
 
   const selectedCanOpen = canOpenTarget(selectedOpenTarget);
   const openLabel = selectedCanOpen
-    ? `Open in ${selectedOpenTarget.label}`
+    ? t("openApp.openIn", { value: selectedOpenTarget.label })
     : selectedOpenTarget.target.kind === "command"
-      ? "Set command in Settings"
-      : "Set app name in Settings";
+      ? t("openApp.setCommandInSettings")
+      : t("openApp.setAppNameInSettings");
 
   return (
     <div className="open-app-menu" ref={openMenuRef}>
@@ -197,7 +199,7 @@ export function OpenAppMenu({
           onClick={handleOpen}
           disabled={!selectedCanOpen}
           data-tauri-drag-region="false"
-          aria-label={`Open in ${selectedOpenTarget.label}`}
+          aria-label={t("openApp.openIn", { value: selectedOpenTarget.label })}
           title={openLabel}
         >
           <span className="open-app-label">
@@ -217,8 +219,8 @@ export function OpenAppMenu({
           data-tauri-drag-region="false"
           aria-haspopup="menu"
           aria-expanded={openMenuOpen}
-          aria-label="Select editor"
-          title="Select editor"
+          aria-label={t("openApp.selectEditor")}
+          title={t("openApp.selectEditor")}
         >
           <ChevronDown size={14} aria-hidden />
         </button>

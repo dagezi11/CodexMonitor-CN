@@ -1,458 +1,224 @@
-# CodexMonitor iOS + Cloudflare Bridge Blueprint
+﻿# CodexMonitor iOS 远端蓝图（Orbit + Tailscale 引导）
 
-This document is the canonical implementation plan for shipping CodexMonitor on iOS using a Cloudflare bridge to a macOS runner.
+本文档定义 CodexMonitor 在 iOS 上线时的规范方案：
 
-## Scope
+- **生产链路**：Orbit（自托管）作为认证与中继控制面。
+- **首轮落地引导**：Tailscale + TCP daemon 作为可快速验证的自建路径。
+- **执行宿主**：macOS 仍是实际执行主机（Codex、仓库、git、终端、文件都在主机侧）。
 
-- Build and ship a real iOS app (Tauri mobile target).
-- Keep macOS as the execution host (Codex binary, repos, git, terminals, files).
-- Use Cloudflare as secure relay/realtime bridge between iOS and macOS.
-- Make macOS setup manageable from CodexMonitor Settings: configure bridge, store credentials, launch/stop service, inspect status/logs.
-- Keep one backend logic path (shared core + daemon). Do not duplicate backend behavior in iOS UI.
+> 说明：本文档已切换为 Orbit 命名与架构，不再使用 Cloudflare/PR31 旧方案。
 
-## Current State (Important)
+## 目标
 
-- Tauri app is desktop-first with `#[cfg_attr(mobile, tauri::mobile_entry_point)]` already present in `src-tauri/src/lib.rs`.
-- `src-tauri/src/remote_backend.rs` currently uses raw TCP `host:port` and optional token auth.
-- Remote notification forwarding currently handles only:
+- 发布可真实运行的 iOS 应用（Tauri mobile target）。
+- 保持 app 与 daemon 共享后端核心逻辑，不在 iOS UI 复制后端行为。
+- 提供低门槛自建接入路径（Tailscale + TCP）用于早期联调。
+- 提供 Orbit 自托管配置路径，支撑长期生产形态。
+- 维持 app/daemon 功能一致性（在当前移动端范围内）。
+
+## 非目标（本阶段）
+
+- 不引入 CloudKit/PR31 风格的移动后端。
+- 不新增第二套自定义传输协议（`seq/ack` 私有 envelope）。
+- 不在本阶段承诺 terminal 与 dictation 的移动端 parity。
+- 不提供官方托管 Orbit 服务（仅自托管）。
+
+## 当前状态（与代码同步）
+
+- Tauri 移动入口已存在：`src-tauri/src/lib.rs` 使用 `#[cfg_attr(mobile, tauri::mobile_entry_point)]`。
+- `remote_backend` 已拆分为 provider 化传输：
+  - `src-tauri/src/remote_backend/mod.rs`
+  - `src-tauri/src/remote_backend/protocol.rs`
+  - `src-tauri/src/remote_backend/transport.rs`
+  - `src-tauri/src/remote_backend/tcp_transport.rs`
+  - `src-tauri/src/remote_backend/orbit_ws_transport.rs`
+- 传输层现状：
+  - TCP 路径保持兼容。
+  - Orbit WS 已实现 connect/read/write 与 request/response 路由（含行分帧）。
+  - App 侧暂未实现完整客户端重连循环。
+  - Daemon Orbit runner 已有重连/退避基础能力。
+- 设置项现状：
+  - `remoteBackendProvider`: `"tcp" | "orbit"`
+  - `remoteBackendHost`、`remoteBackendToken`
+  - `orbitWsUrl`、`orbitAuthUrl`
+  - `orbitRunnerName`、`orbitAutoStartRunner`
+  - `orbitUseAccess`、`orbitAccessClientId`、`orbitAccessClientSecretRef`
+- Orbit 控制操作已打通（app + daemon + shared core）：
+  - `orbit_connect_test`
+  - `orbit_sign_in_start`
+  - `orbit_sign_in_poll`（授权成功后写回 token）
+  - `orbit_sign_out`（登出并清 token）
+  - `orbit_runner_start`
+  - `orbit_runner_stop`
+  - `orbit_runner_status`
+- 远端事件转发当前覆盖：
   - `app-server-event`
   - `terminal-output`
   - `terminal-exit`
-- Daemon RPC surface does not match full local Tauri command surface yet (major parity gap).
-
-## Target Architecture
-
-## Components
-
-1. iOS App (Tauri)
-- UI + local state + IPC wrappers.
-- Uses remote mode only (no local codex execution).
-- Connects to Cloudflare WebSocket bridge.
-
-2. macOS App + Daemon Runner
-- Runs all backend operations (shared cores, codex process, files/git/terminal).
-- Maintains outbound connection to Cloudflare bridge.
-- Receives command envelopes from bridge and returns results/events.
-
-3. Cloudflare Bridge
-- Worker entrypoint for auth/session routing.
-- Durable Object per session for fanout and coordination.
-- Durable Object SQLite storage for cursor/queue/snapshot persistence.
-- Optional REST endpoints for pairing bootstrap.
-
-## Data Flow
-
-1. macOS runner authenticates to Cloudflare and opens persistent WS.
-2. iOS app pairs and opens WS to same session.
-3. iOS sends `invoke` envelopes to bridge.
-4. Bridge forwards to runner.
-5. Runner executes daemon RPC.
-6. Runner streams `result` + `event` envelopes back.
-7. iOS applies ordered events and acks sequence.
-8. On reconnect, iOS requests replay from last acked sequence.
-
-## Transport Protocol (Bridge Envelope)
-
-All frames JSON:
+- Tailscale 引导能力已落地（TCP 模式）：
+  - `tailscale_status`
+  - `tailscale_daemon_command_preview`
+  - 设置页支持“检测 Tailscale / 使用建议主机 / daemon 启动命令模板”。
+- 移动端范围内的 daemon RPC parity 已补齐（terminal/dictation 仍按范围外处理）。
+
+## 架构总览
+
+1. **iOS 客户端（Tauri mobile）**
+   - React 前端 + Tauri WebView。
+   - 默认 remote backend。
+2. **macOS 主机（CodexMonitor daemon）**
+   - 承载仓库、Codex、git 与文件访问。
+   - 提供 JSON-RPC 能力。
+3. **Tailscale Tailnet（引导链路）**
+   - iOS 与 macOS 加入同一 tailnet。
+   - iOS 通过 tailnet 直接连 TCP daemon。
+4. **Orbit 云服务（生产链路）**
+   - 认证服务（passkey / session）。
+   - Orbit relay（WS 控制 + 事件中继）。
+   - 仅自托管部署。
+
+## 传输与协议原则
 
-```json
-{
-  "v": 1,
-  "sessionId": "string",
-  "seq": 123,
-  "kind": "auth|invoke|result|event|ack|ping|pong|error",
-  "requestId": "uuid-optional",
-  "method": "optional",
-  "params": {},
-  "result": {},
-  "error": { "code": "string", "message": "string" },
-  "ts": 1730000000000
-}
-```
+- Orbit 使用既有 JSON-RPC + Orbit 控制消息（如 subscribe/unsubscribe/keepalive）。
+- TCP bootstrap 继续使用现有 token 鉴权的 JSON-RPC。
+- 不新增私有 `seq/ack` 协议分叉。
+- 重连与恢复优先基于 Orbit 线程历史接口 + `thread/resume`。
 
-Rules:
-- `requestId` required for `invoke/result/error`.
-- `seq` monotonic per session for replay.
-- `ack` carries highest contiguous applied `seq`.
-- Bridge stores unacked frames in DO storage.
-
-## Cloudflare Implementation Plan
+## 设置与 UX（Server Section）
 
-## Product Choices
+### 桌面端设置项
 
-- Workers + Durable Objects (WebSocket hibernation API).
-- Durable Object SQLite-backed storage.
-- Cloudflare Access service token authentication.
+- Provider 选择：`TCP daemon` / `Orbit`（当前可标注为 WIP）。
+- TCP + Tailscale 辅助：
+  - Detect Tailscale
+  - Use suggested host
+  - daemon command template
+- Orbit 配置：
+  - Orbit WS URL
+  - Orbit Auth URL
+  - Runner name
+  - Access 开关 + client id/secret（可选）
+- 操作按钮：
+  - Connect test
+  - Sign In / Sign Out
+  - Start Runner / Stop Runner
+  - Refresh Status
 
-## Worker/DO Topology
+### 当前实现状态
 
-- Worker routes:
-  - `GET /ws/:sessionId` (WS upgrade)
-  - `POST /pair/start` (desktop bootstrap)
-  - `POST /pair/claim` (mobile claim via code)
-  - `GET /session/:id/status`
-- Durable Object key = `sessionId`.
-- One runner connection max per session.
-- Multiple viewer/client connections allowed (future web clients).
+- 已完成：provider 切换、Tailscale 辅助、Orbit URL/认证输入、runner 控制、状态刷新。
+- 待完成：LaunchAgent 安装/移除、完整日志抽屉、二维码配对 UX。
 
-## Durable Object Storage Schema
+### 交互规则
 
-- `session_meta` (owner, createdAt, ttl, runnerOnline).
-- `messages` (seq, kind, requestId, payload, createdAt).
-- `acks` (clientId -> seq).
-- `pair_codes` (shortCode, expiresAt, claimedBy).
+- 非法组合必须禁用并给出可执行提示。
+- 非敏感配置即时持久化。
+- 敏感信息（token/secret）仅通过后端安全命令写入。
+- 错误提示必须可行动（如 endpoint 错误、token 过期、runner 离线）。
 
-## Auth Model
+## iOS 客户端 UX
 
-- Runner and client both must present credentials.
-- Recommend Access service token headers at Worker ingress.
-- Inside envelope, include signed session claim (short-lived JWT or HMAC token minted by Worker during pairing).
-- Rotate bridge secrets without app rebuild (settings update + reconnect).
+### 首次引导
 
-## Wrangler Bootstrap
+- 登录（基于已配置 endpoint）。
+- `Scan QR` / `Enter pair code`。
+- 展示最近会话。
 
-Example `wrangler.toml` skeleton:
+### 运行态
 
-```toml
-name = "codexmonitor-bridge"
-main = "src/index.ts"
-compatibility_date = "2026-02-07"
+- 当前连接状态。
+- 当前会话/工作区。
+- 远端主机可达性提示。
 
-[durable_objects]
-bindings = [
-  { name = "SESSIONS", class_name = "SessionBridge" }
-]
+### 移动端布局要求
 
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["SessionBridge"]
-```
+- 点击目标不小于 44pt。
+- 核心流程不依赖 hover。
+- iOS 输入区必须处理安全区与底部 inset。
+- 手机布局下禁用桌面式拖拽缩放交互。
 
-Initial ops checklist:
+## Tailscale Bootstrap（已实现）
 
-1. `npm create cloudflare@latest codexmonitor-bridge`.
-2. Add Durable Object class and WS handlers.
-3. Add pairing endpoints.
-4. Add auth middleware (Access token verification policy).
-5. `npx wrangler deploy`.
-6. Save Worker URL for app settings.
+### 桌面端步骤
 
-## Required Backend Refactor in CodexMonitor
+1. 桌面与 iPhone 均安装并登录同一 Tailnet。
+2. 在 CodexMonitor 设置中选择 `Backend Mode = Remote`、`Provider = TCP`。
+3. 点击 `Detect Tailscale`，再点击 `Use suggested host`。
+4. 设置 `Remote backend token`。
+5. 复制并运行 daemon 命令模板。
 
-## 1) Refactor `remote_backend` to pluggable transport
+### iOS 端步骤
 
-Target: keep existing `call_remote(...)` callsites while replacing transport internals.
+1. 打开 iOS 应用。
+2. 选择 TCP provider，填入 tailnet host + token。
+3. 连接并验证线程列表/消息流。
 
-Proposed structure:
+## Orbit 自托管流程
 
-- `src-tauri/src/remote_backend/mod.rs`
-- `src-tauri/src/remote_backend/protocol.rs`
-- `src-tauri/src/remote_backend/transport.rs` (trait)
-- `src-tauri/src/remote_backend/tcp_transport.rs` (legacy/dev)
-- `src-tauri/src/remote_backend/cloudflare_ws_transport.rs` (new)
+### 桌面端
 
-`RemoteTransport` trait:
+1. 部署 Orbit relay + auth 服务。
+2. 设置 `Backend Mode = Remote`、`Provider = Orbit`。
+3. 填写 `Orbit WS URL` 与 `Orbit Auth URL`。
+4. 视需求配置 Access 凭据。
+5. Sign in 并启动 runner。
+6. 通过二维码/配对码为移动端配对。
 
-- `connect(config) -> Client`
-- `send(request) -> pending result`
-- `subscribe_events() -> stream`
-- `close()`
-- `status()`
+### iOS 端
 
-## 2) Add cloud bridge configuration to settings model
+1. 启动应用并完成登录。
+2. 扫码或输入配对码。
+3. 将凭据安全保存在 Keychain，并自动重连。
 
-Extend `AppSettings` in `src-tauri/src/types.rs` and UI types in `src/types.ts`.
+## 安全与密钥管理
 
-Add section:
+- macOS：使用 Keychain/`keyring` 承载敏感信息。
+- iOS：使用 Keychain 存储认证与会话凭据。
+- secret 生命周期需覆盖：写入、重置、轮换、吊销。
+- 日志默认脱敏，不打印 token/secret。
 
-- `remoteBridgeProvider`: `"tcp" | "cloudflare"`
-- `cloudflareWorkerUrl`
-- `cloudflareSessionId`
-- `cloudflareRunnerName`
-- `cloudflareAutoStartRunner` (bool)
-- `cloudflareUseAccess` (bool)
-- `cloudflareAccessClientId` (non-secret allowed)
-- `cloudflareAccessClientSecretRef` (secret reference only)
+## iOS 构建与安装 Runbook
 
-Keep secrets out of plain `settings.json` where possible.
+### 先决条件（macOS）
 
-## 3) Secret storage
-
-Implement secure secret storage adapter:
-
-- macOS: Keychain via Rust crate (`keyring`) or dedicated secure-storage layer.
-- iOS: Keychain-backed storage for mobile credentials.
-
-Store only secret reference/alias in app settings JSON.
-
-## 4) Runner service manager (macOS)
-
-Add backend service manager module:
-
-- `src-tauri/src/bridge_runner/mod.rs`
-
-Responsibilities:
-- Start runner process/task.
-- Stop runner.
-- Report health (`connecting|online|offline|error`).
-- Persist last logs ring buffer.
-- Auto-start on app launch if enabled.
-
-Potential implementations:
-- Embedded task in app process (faster iteration).
-- Optional LaunchAgent installation for background persistence across app restarts.
-
-## 5) Daemon bridge mode
-
-Extend daemon binary (`src-tauri/src/bin/codex_monitor_daemon.rs`) with optional bridge connector mode:
-
-- `--bridge-url`
-- `--bridge-session`
-- `--bridge-auth-*`
-
-Behavior:
-- Outbound WS to Worker.
-- Translate bridge envelopes <-> existing RPC handler + event bus.
-
-## 6) Command parity completion (blocking)
-
-Remote mode must support the full local command surface used by UI.
-
-Implement missing daemon methods and/or remote routing for at least:
-
-- Git commands:
-  - `list_git_roots`, `get_git_status`, `get_git_diffs`, `get_git_log`, `get_git_commit_diff`, `get_git_remote`
-  - `list_git_branches`, `checkout_git_branch`, `create_git_branch`
-  - `stage_git_file`, `stage_git_all`, `unstage_git_file`
-  - `revert_git_file`, `revert_git_all`
-  - `commit_git`, `push_git`, `pull_git`, `fetch_git`, `sync_git`
-  - GitHub API commands for issues/PRs/comments/diff
-- Terminal commands:
-  - `terminal_open`, `terminal_write`, `terminal_resize`, `terminal_close`
-- Prompts commands:
-  - `prompts_list`, `prompts_create`, `prompts_update`, `prompts_delete`, `prompts_move`, `prompts_workspace_dir`, `prompts_global_dir`
-- Dictation commands:
-  - `dictation_model_status`, `dictation_download_model`, `dictation_cancel_download`, `dictation_remove_model`, `dictation_start`, `dictation_request_permission`, `dictation_stop`, `dictation_cancel`
-- Workspace/app extras:
-  - `add_clone`, `apply_worktree_changes`, `open_workspace_in`, `get_open_app_icon`
-- Utility commands:
-  - `codex_doctor`, `get_commit_message_prompt`, `generate_commit_message`, `generate_run_metadata`, `local_usage_snapshot`, `send_notification_fallback`, `is_macos_debug_build`, `menu_set_accelerators`
-
-Add CI guard:
-- Script that parses `generate_handler![]` and daemon RPC dispatch and fails on mismatch.
-
-## Frontend Plan
-
-## Settings UX (required for easy setup)
-
-Update `src/features/settings/components/SettingsView.tsx` to add a Cloudflare section when `backendMode=remote` and provider is cloudflare.
-
-Required controls:
-
-- Provider selector (`TCP daemon` / `Cloudflare bridge`)
-- Worker URL input
-- Session ID input
-- Runner name input
-- Access auth toggle + client id input + secret set/reset
-- `Connect test` button
-- `Start Runner` / `Stop Runner` buttons
-- `Install LaunchAgent` / `Remove LaunchAgent` (optional)
-- Status badge + last heartbeat + error message
-- `Copy Pair Code` / `Show QR` (if pairing flow enabled)
-- `View Logs` drawer
-
-UX behavior:
-- Disable invalid combos.
-- Show clear actionable errors (auth failed, session not found, runner offline).
-- Persist non-secret fields immediately.
-- Save secrets via secure backend command only.
-
-## iOS client UX
-
-- Connection screen:
-  - Worker URL
-  - Pair code / QR scanner (if enabled)
-  - Recent sessions
-- Runtime status:
-  - `Connected to <runnerName>`
-  - Latency indicator
-  - Reconnecting state
-- Conflict handling:
-  - Runner offline banner
-  - Replay-in-progress state after reconnect
-
-## Mobile-safe UI readiness
-
-Current responsive layouts exist (`phone`, `tablet`, `desktop`), but ensure:
-
-- touch target sizes are >= 44pt
-- no hover-only actions for critical controls
-- keyboard-safe composer on iOS (safe area + bottom inset)
-- panel resizing gestures disabled on touch layouts
-
-## iOS Build + Install Runbook
-
-## Prerequisites (macOS)
-
-1. Xcode (full app, not only CLT).
-2. Rust iOS targets:
+1. 安装 Xcode（非仅 CLT）。
+2. 安装 Rust iOS targets：
 
 ```bash
-rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+# Intel Mac 可选
+rustup target add x86_64-apple-ios
 ```
 
-3. CocoaPods:
+3. 配置开发团队签名（`src-tauri/tauri.conf.json` 或脚本参数 `--team`）。
+
+### 模拟器
 
 ```bash
-brew install cocoapods
+./scripts/build_run_ios.sh
 ```
 
-4. JS dependencies from repo root:
+### 真机
 
 ```bash
-npm install
+./scripts/build_run_ios_device.sh --list-devices
+./scripts/build_run_ios_device.sh --device "<name-or-id>" --team <TEAM_ID>
 ```
 
-## Initialize iOS project files
+## 里程碑
 
-From repo root:
+1. Milestone A：iOS 编译基线 + mobile-safe stubs。
+2. Milestone B：Orbit 集成基线（自托管配置路径）。
+3. Milestone C：`remote_backend` provider 化 + Orbit WS + runner Orbit mode。
+4. Milestone D：移动端范围内 daemon parity 闭环（不含 terminal/dictation）。
+5. Milestone E：Settings 服务管理 + 配对 UX 完善。
+6. Milestone F：全链路 E2E 与 TestFlight beta。
 
-```bash
-npm run tauri ios init
-```
+## 完成定义（DoD）
 
-Expected output:
-- `src-tauri/gen/apple/*` generated.
-- Xcode project/workspace for iOS target available.
-
-## Run on iOS Simulator (dev)
-
-```bash
-npm run tauri ios dev
-```
-
-Notes:
-- Uses `build.devUrl` and `beforeDevCommand`.
-- Rust + frontend hot-reload loop in dev.
-
-## Run on Physical Device (dev)
-
-1. Open generated Xcode workspace.
-2. Set Apple Team + signing profile for iOS target.
-3. Ensure frontend dev server reachable from device network.
-4. Run:
-
-```bash
-npm run tauri ios dev -- <device-name-or-udid>
-```
-
-If network issues appear, ensure dev server listens on host interface and uses `TAURI_DEV_HOST` when set.
-
-## Build production iOS app
-
-```bash
-npm run tauri ios build
-```
-
-Output:
-- Release build artifacts/IPA via Tauri iOS build flow.
-
-## Install build
-
-Development install options:
-
-1. Xcode run to connected device.
-2. Xcode Organizer distribute to internal testers.
-3. TestFlight (recommended for team validation).
-
-For direct IPA sideload in controlled environments, use Apple Configurator or MDM as appropriate.
-
-## Tauri and Cargo Changes Required for iOS Compatibility
-
-## Cargo dependency gating
-
-In `src-tauri/Cargo.toml`, gate non-mobile dependencies behind desktop cfg where needed (for example terminal/generic git native deps if unsupported on iOS runtime path).
-
-## Tauri config split
-
-Create and maintain iOS-specific config (`src-tauri/tauri.ios.conf.json`) for:
-
-- iOS bundle identifiers
-- iOS icons/assets
-- iOS permissions usage strings
-- iOS-specific plugin toggles
-
-Keep desktop-only settings out of iOS config (titlebar/private APIs/updater artifacts).
-
-## Backend module gating
-
-Use `cfg` for mobile-safe stubs where functionality is desktop-only, while preserving command signatures used by frontend.
-
-## Testing and Validation Matrix
-
-## Unit/Type/Lint
-
-From repo root:
-
-```bash
-npm run lint
-npm run typecheck
-npm run test
-```
-
-If Rust touched:
-
-```bash
-cd src-tauri
-cargo check
-cargo test
-```
-
-## Bridge integration tests
-
-- Simulate iOS disconnect/reconnect.
-- Verify replay from `ack` cursor.
-- Verify idempotent handling of duplicate `requestId`.
-- Verify unauthorized client rejection.
-- Verify runner failover from offline -> online.
-
-## Manual scenario checklist
-
-1. Pair iOS with macOS runner.
-2. List workspaces.
-3. Connect workspace.
-4. Start thread, send messages, interrupt turn.
-5. Git diff panel operations.
-6. Terminal open/write/resize/close.
-7. Prompts CRUD.
-8. Background iOS app, resume, ensure state resync.
-9. macOS runner restart, iOS auto-reconnect.
-
-## Implementation Milestones
-
-1. Milestone A: iOS compile baseline + mobile-safe stubs.
-2. Milestone B: Cloudflare Worker + DO bridge deployed + tested with mock clients.
-3. Milestone C: remote_backend transport refactor + runner bridge mode.
-4. Milestone D: daemon parity closure + CI parity guard.
-5. Milestone E: settings UX/service manager + pairing UX.
-6. Milestone F: full E2E validation and TestFlight beta.
-
-## Definition of Done
-
-- iOS app can fully control a macOS runner via Cloudflare bridge.
-- Remote feature parity with desktop local mode for supported workflows.
-- macOS users can configure bridge from Settings without terminal steps.
-- Runner can be started/stopped/auto-started from app.
-- Reconnect/replay is robust and observable.
-- Build/install flow is documented and reproducible.
-
-## Fresh-Agent Execution Checklist
-
-1. Read this document completely.
-2. Implement Milestone A first and ensure local iOS dev build works.
-3. Implement Cloudflare bridge in isolation (mock runner/client).
-4. Refactor `remote_backend` to transport abstraction.
-5. Complete daemon parity and add parity CI guard.
-6. Build settings UX and runner service controls.
-7. Validate full manual checklist on simulator and physical device.
-8. Ship behind feature flag, then remove flag after beta validation.
+- iOS 可通过 Orbit 链路稳定控制 macOS runner。
+- 在支持的工作流范围内，remote 模式达到可用 parity。
+- 桌面端可在 Settings 中完成 Orbit 自托管配置与基础运维。
+- runner 支持启动/停止/自动启动。
+- 重连/恢复路径可观测、可回归测试。
+- 构建/安装流程文档可复现。

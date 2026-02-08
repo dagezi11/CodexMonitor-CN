@@ -4,26 +4,42 @@ use tauri::{RunEvent, WindowEvent};
 
 mod backend;
 mod codex;
-mod files;
+mod daemon_binary;
 mod dictation;
 mod event_sink;
+mod files;
 mod git;
 mod git_utils;
 mod local_usage;
+#[cfg(desktop)]
+mod menu;
+#[cfg(not(desktop))]
+#[path = "menu_mobile.rs"]
 mod menu;
 mod notifications;
+mod orbit;
 mod prompts;
 mod remote_backend;
 mod rules;
 mod settings;
+mod shared;
 mod state;
 mod storage;
-mod shared;
+mod tailscale;
+#[cfg(desktop)]
+mod terminal;
+#[cfg(not(desktop))]
+#[path = "terminal_mobile.rs"]
 mod terminal;
 mod types;
 mod utils;
 mod window;
 mod workspaces;
+
+#[tauri::command]
+fn is_mobile_runtime() -> bool {
+    cfg!(any(target_os = "ios", target_os = "android"))
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -33,13 +49,23 @@ pub fn run() {
         if std::env::var_os("__NV_PRIME_RENDER_OFFLOAD").is_none() {
             std::env::set_var("__NV_PRIME_RENDER_OFFLOAD", "1");
         }
+        // Work around sporadic blank WebKitGTK renders on X11 by disabling compositing mode.
+        if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
     }
 
+    #[cfg(desktop)]
     let builder = tauri::Builder::default()
         .enable_macos_default_menu(false)
         .manage(menu::MenuItemRegistry::<tauri::Wry>::default())
         .menu(menu::build_menu)
-        .on_menu_event(menu::handle_menu_event)
+        .on_menu_event(menu::handle_menu_event);
+
+    #[cfg(not(desktop))]
+    let builder = tauri::Builder::default();
+
+    let builder = builder
         .on_window_event(|window, event| {
             if window.label() != "main" {
                 return;
@@ -53,6 +79,12 @@ pub fn run() {
         .setup(|app| {
             let state = state::AppState::load(&app.handle());
             app.manage(state);
+            #[cfg(target_os = "ios")]
+            {
+                if let Some(main_webview) = app.get_webview_window("main") {
+                    let _ = window::configure_ios_webview_edge_to_edge(&main_webview);
+                }
+            }
             #[cfg(desktop)]
             {
                 app.handle()
@@ -166,7 +198,20 @@ pub fn run() {
             dictation::dictation_cancel,
             local_usage::local_usage_snapshot,
             notifications::is_macos_debug_build,
-            notifications::send_notification_fallback
+            notifications::send_notification_fallback,
+            orbit::orbit_connect_test,
+            orbit::orbit_sign_in_start,
+            orbit::orbit_sign_in_poll,
+            orbit::orbit_sign_out,
+            orbit::orbit_runner_start,
+            orbit::orbit_runner_stop,
+            orbit::orbit_runner_status,
+            tailscale::tailscale_status,
+            tailscale::tailscale_daemon_command_preview,
+            tailscale::tailscale_daemon_start,
+            tailscale::tailscale_daemon_stop,
+            tailscale::tailscale_daemon_status,
+            is_mobile_runtime
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application");

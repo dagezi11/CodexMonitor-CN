@@ -28,6 +28,7 @@ import { DictationWaveform } from "../../dictation/components/DictationWaveform"
 import { ReviewInlinePrompt } from "./ReviewInlinePrompt";
 import type { ReviewPromptState, ReviewPromptStep } from "../../threads/hooks/useReviewPrompt";
 import { getFileTypeIconUrl } from "../../../utils/fileTypeIcons";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type ComposerInputProps = {
   text: string;
@@ -185,6 +186,7 @@ export function ComposerInput({
   onReviewPromptUpdateCustomInstructions,
   onReviewPromptConfirmCustom,
 }: ComposerInputProps) {
+  const { t } = useAppTranslation("common");
   const suggestionListRef = useRef<HTMLDivElement | null>(null);
   const suggestionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const minTextareaHeight = isExpanded ? 180 : 60;
@@ -255,19 +257,19 @@ export function ComposerInput({
   const micDisabled =
     disabled || dictationState === "processing" || !dictationEnabled || !onToggleDictation;
   const micAriaLabel = allowOpenDictationSettings
-    ? "Open dictation settings"
+    ? t("composerInput.openDictationSettings")
     : dictationState === "processing"
-      ? "Dictation processing"
+      ? t("composerInput.dictationProcessing")
       : isDictating
-        ? "Stop dictation"
-        : "Start dictation";
+        ? t("composerInput.stopDictation")
+        : t("composerInput.startDictation");
   const micTitle = allowOpenDictationSettings
-    ? "Dictation disabled. Open settings"
+    ? t("composerInput.dictationDisabledOpenSettings")
     : dictationState === "processing"
-      ? "Processing dictation"
+      ? t("composerInput.processingDictation")
       : isDictating
-        ? "Stop dictation"
-        : "Start dictation";
+        ? t("composerInput.stopDictation")
+        : t("composerInput.startDictation");
   const handleMicClick = useCallback(() => {
     if (allowOpenDictationSettings) {
       onOpenDictationSettings?.();
@@ -329,8 +331,8 @@ export function ComposerInput({
             className="composer-attach"
             onClick={onAddAttachment}
             disabled={disabled || !onAddAttachment}
-            aria-label="Add image"
-            title="Add image"
+            aria-label={t("composerInput.addImage")}
+            title={t("composerInput.addImage")}
           >
             <ImagePlus size={14} aria-hidden />
           </button>
@@ -338,8 +340,8 @@ export function ComposerInput({
             ref={textareaRef}
             placeholder={
               disabled
-                ? "Review in progress. Chat will re-enable when it completes."
-                : "Ask Codex to do something..."
+                ? t("composerInput.reviewInProgress")
+                : t("composerInput.askCodex")
             }
             value={text}
             onChange={handleTextareaChange}
@@ -368,7 +370,7 @@ export function ComposerInput({
               className="ghost composer-dictation-error-dismiss"
               onClick={onDismissDictationError}
             >
-              Dismiss
+              {t("composerInput.dismiss")}
             </button>
           </div>
         )}
@@ -381,7 +383,7 @@ export function ComposerInput({
                 className="ghost composer-dictation-error-dismiss"
                 onClick={onDismissDictationHint}
               >
-                Dismiss
+                {t("composerInput.dismiss")}
               </button>
             )}
           </div>
@@ -516,8 +518,12 @@ export function ComposerInput({
           }`}
           onClick={onToggleExpand}
           disabled={disabled}
-          aria-label={isExpanded ? "Collapse input" : "Expand input"}
-          title={isExpanded ? "Collapse input" : "Expand input"}
+          aria-label={
+            isExpanded ? t("composerInput.collapseInput") : t("composerInput.expandInput")
+          }
+          title={
+            isExpanded ? t("composerInput.collapseInput") : t("composerInput.expandInput")
+          }
         >
           {isExpanded ? <ChevronDown aria-hidden /> : <ChevronUp aria-hidden />}
         </button>
@@ -545,7 +551,7 @@ export function ComposerInput({
         }`}
         onClick={handleActionClick}
         disabled={disabled || isDictationBusy || (!canStop && !canSend)}
-        aria-label={canStop ? "Stop" : sendLabel}
+        aria-label={canStop ? t("composerInput.stop") : sendLabel}
       >
         {canStop ? (
           <>

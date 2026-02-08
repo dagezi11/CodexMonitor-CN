@@ -56,6 +56,7 @@ import type { UpdateState } from "../../update/hooks/useUpdater";
 import type { TerminalSessionState } from "../../terminal/hooks/useTerminalSession";
 import type { TerminalTab } from "../../terminal/hooks/useTerminalTabs";
 import type { ErrorToast } from "../../../services/toasts";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type ThreadActivityStatus = {
   isProcessing: boolean;
@@ -115,6 +116,7 @@ type LayoutNodesOptions = {
   threadListCursorByWorkspace: Record<string, string | null>;
   threadListSortKey: ThreadListSortKey;
   onSetThreadListSortKey: (sortKey: ThreadListSortKey) => void;
+  onRefreshAllThreads: () => void;
   activeWorkspaceId: string | null;
   activeThreadId: string | null;
   activeItems: ConversationItem[];
@@ -125,6 +127,7 @@ type LayoutNodesOptions = {
   onCancelSwitchAccount: () => void;
   accountSwitching: boolean;
   codeBlockCopyUseModifier: boolean;
+  showMessageFilePath: boolean;
   openAppTargets: OpenAppTarget[];
   openAppIconById: Record<string, string>;
   selectedOpenAppId: string;
@@ -212,6 +215,7 @@ type LayoutNodesOptions = {
   onCopyThread: () => void | Promise<void>;
   onToggleTerminal: () => void;
   showTerminalButton: boolean;
+  showWorkspaceTools: boolean;
   launchScript: string | null;
   launchScriptEditorOpen: boolean;
   launchScriptDraft: string;
@@ -470,6 +474,7 @@ type LayoutNodesResult = {
 };
 
 export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
+  const { t } = useAppTranslation("common");
   const activeThreadStatus = options.activeThreadId
     ? options.threadStatusById[options.activeThreadId] ?? null
     : null;
@@ -490,6 +495,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       threadListCursorByWorkspace={options.threadListCursorByWorkspace}
       threadListSortKey={options.threadListSortKey}
       onSetThreadListSortKey={options.onSetThreadListSortKey}
+      onRefreshAllThreads={options.onRefreshAllThreads}
       activeWorkspaceId={options.activeWorkspaceId}
       activeThreadId={options.activeThreadId}
       accountRateLimits={options.activeRateLimits}
@@ -540,6 +546,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       openTargets={options.openAppTargets}
       selectedOpenAppId={options.selectedOpenAppId}
       codeBlockCopyUseModifier={options.codeBlockCopyUseModifier}
+      showMessageFilePath={options.showMessageFilePath}
       userInputRequests={options.userInputRequests}
       onUserInputSubmit={options.handleUserInputSubmit}
       onOpenThreadLink={options.onOpenThreadLink}
@@ -699,6 +706,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       onToggleTerminal={options.onToggleTerminal}
       isTerminalOpen={options.terminalOpen}
       showTerminalButton={options.showTerminalButton}
+      showWorkspaceTools={options.showWorkspaceTools}
       launchScript={options.launchScript}
       launchScriptEditorOpen={options.launchScriptEditorOpen}
       launchScriptDraft={options.launchScriptDraft}
@@ -935,28 +943,28 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
 
   const compactEmptyCodexNode = (
     <div className="compact-empty">
-      <h3>No workspace selected</h3>
-      <p>Choose a project to start chatting.</p>
+      <h3>{t("layout.noWorkspaceSelected")}</h3>
+      <p>{t("layout.chooseProjectToChat")}</p>
       <button className="ghost" onClick={options.onGoProjects}>
-        Go to Projects
+        {t("layout.goToProjects")}
       </button>
     </div>
   );
 
   const compactEmptyGitNode = (
     <div className="compact-empty">
-      <h3>No workspace selected</h3>
-      <p>Select a project to inspect diffs.</p>
+      <h3>{t("layout.noWorkspaceSelected")}</h3>
+      <p>{t("layout.selectProjectForDiffs")}</p>
       <button className="ghost" onClick={options.onGoProjects}>
-        Go to Projects
+        {t("layout.goToProjects")}
       </button>
     </div>
   );
 
   const compactGitBackNode = (
     <div className="compact-git-back">
-      <button onClick={options.onBackFromDiff}>‹ Back</button>
-      <span className="workspace-title">Diff</span>
+      <button onClick={options.onBackFromDiff}>{t("layout.backWithChevron")}</button>
+      <span className="workspace-title">{t("layout.diff")}</span>
     </div>
   );
 

@@ -1,7 +1,7 @@
 {
   "name": "codex-monitor",
   "private": true,
-  "version": "0.7.44",
+  "version": "0.7.45",
   "type": "module",
   "scripts": {
     "sync:material-icons": "node scripts/sync-material-icons.mjs",
@@ -14,6 +14,7 @@
     "doctor": "sh scripts/doctor.sh",
     "doctor:strict": "sh scripts/doctor.sh --strict",
     "doctor:win": "node scripts/doctor.mjs --strict",
+    "doctor:win:e": "powershell -ExecutionPolicy Bypass -File scripts/tauri-build-win-e.ps1 -CheckOnly",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:ds": "eslint . --ext .ts,.tsx",
     "codemod:modal-shell": "node scripts/codemods/modal-shell-codemod.mjs",
@@ -33,7 +34,8 @@
     "pretauri:dev:win": "npm run sync:material-icons",
     "tauri:dev:win": "npm run doctor:win && tauri dev --config src-tauri/tauri.windows.conf.json",
     "pretauri:build:win": "npm run sync:material-icons",
-    "tauri:build:win": "npm run doctor:win && tauri build --config src-tauri/tauri.windows.conf.json"
+    "tauri:build:win": "npm run doctor:win && tauri build --config src-tauri/tauri.windows.conf.json",
+    "tauri:build:win:e": "powershell -ExecutionPolicy Bypass -File scripts/tauri-build-win-e.ps1"
   },
   "dependencies": {
     "@pierre/diffs": "^1.0.6",
@@ -47,10 +49,12 @@
     "@tauri-apps/plugin-updater": "^2.9.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
+    "i18next": "^25.6.0",
     "lucide-react": "^0.562.0",
     "prismjs": "^1.30.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^15.7.2",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "tauri-plugin-liquid-glass-api": "^0.1.6",

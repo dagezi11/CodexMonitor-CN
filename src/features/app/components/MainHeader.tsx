@@ -15,6 +15,7 @@ import { LaunchScriptButton } from "./LaunchScriptButton";
 import { LaunchScriptEntryButton } from "./LaunchScriptEntryButton";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
+import { useAppTranslation } from "../../i18n/i18n";
 
 type MainHeaderProps = {
   workspace: WorkspaceInfo;
@@ -36,6 +37,7 @@ type MainHeaderProps = {
   onToggleTerminal: () => void;
   isTerminalOpen: boolean;
   showTerminalButton?: boolean;
+  showWorkspaceTools?: boolean;
   extraActionsNode?: ReactNode;
   launchScript?: string | null;
   launchScriptEditorOpen?: boolean;
@@ -88,6 +90,7 @@ export function MainHeader({
   onToggleTerminal,
   isTerminalOpen,
   showTerminalButton = true,
+  showWorkspaceTools = true,
   extraActionsNode,
   launchScript = null,
   launchScriptEditorOpen = false,
@@ -102,6 +105,7 @@ export function MainHeader({
   launchScriptsState,
   worktreeRename,
 }: MainHeaderProps) {
+  const { t } = useAppTranslation("shell");
   const [menuOpen, setMenuOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [branchQuery, setBranchQuery] = useState("");
@@ -209,7 +213,7 @@ export function MainHeader({
                 aria-haspopup="dialog"
                 aria-expanded={infoOpen}
                 data-tauri-drag-region="false"
-                title="Worktree info"
+                title={t("mainHeader.worktreeInfo")}
               >
                 {worktreeLabel || branchName}
               </button>
@@ -217,7 +221,7 @@ export function MainHeader({
                 <PopoverSurface className="worktree-info-popover" role="dialog">
                   {worktreeRename && (
                     <div className="worktree-info-rename">
-                      <span className="worktree-info-label">Name</span>
+                      <span className="worktree-info-label">{t("mainHeader.name")}</span>
                       <div className="worktree-info-command">
                         <input
                           ref={renameInputRef}
@@ -264,8 +268,8 @@ export function MainHeader({
                           disabled={
                             worktreeRename.isSubmitting || !worktreeRename.isDirty
                           }
-                          aria-label="Confirm rename"
-                          title="Confirm rename"
+                          aria-label={t("mainHeader.confirmRename")}
+                          title={t("mainHeader.confirmRename")}
                         >
                           <Check aria-hidden />
                         </button>
@@ -317,8 +321,8 @@ export function MainHeader({
                           await navigator.clipboard.writeText(cdCommand);
                         }}
                         data-tauri-drag-region="false"
-                        aria-label="Copy command"
-                        title="Copy command"
+                        aria-label={t("mainHeader.copyCommand")}
+                        title={t("mainHeader.copyCommand")}
                       >
                         <Copy aria-hidden />
                       </button>
@@ -328,7 +332,7 @@ export function MainHeader({
                     </span>
                   </div>
                   <div className="worktree-info-row">
-                    <span className="worktree-info-label">Reveal</span>
+                    <span className="worktree-info-label">{t("mainHeader.reveal")}</span>
                     <button
                       type="button"
                       className="worktree-info-reveal"
@@ -407,14 +411,14 @@ export function MainHeader({
                             }
                           }
                         }}
-                        placeholder="Search or create branch"
+                        placeholder={t("mainHeader.searchOrCreateBranch")}
                         className="branch-input"
                         autoCorrect="off"
                         autoCapitalize="none"
                         spellCheck={false}
                         autoFocus
                         data-tauri-drag-region="false"
-                        aria-label="Search branches"
+                        aria-label={t("mainHeader.searchBranches")}
                       />
                       <button
                         type="button"
@@ -463,7 +467,7 @@ export function MainHeader({
                     itemRole="menuitem"
                     itemDataTauriDragRegion="false"
                     emptyClassName="branch-empty"
-                    emptyText="No branches found"
+                    emptyText={t("mainHeader.noBranchesFound")}
                     onSelect={async (branch) => {
                       if (branch.name === branchName) {
                         return;
@@ -486,7 +490,8 @@ export function MainHeader({
         </div>
       </div>
       <div className="main-header-actions">
-        {onRunLaunchScript &&
+        {showWorkspaceTools &&
+          onRunLaunchScript &&
           onOpenLaunchScriptEditor &&
           onCloseLaunchScriptEditor &&
           onLaunchScriptDraftChange &&
@@ -538,21 +543,23 @@ export function MainHeader({
               ))}
             </div>
           )}
-        <OpenAppMenu
-          path={resolvedWorktreePath}
-          openTargets={openTargets}
-          selectedOpenAppId={selectedOpenAppId}
-          onSelectOpenAppId={onSelectOpenAppId}
-          iconById={openAppIconById}
-        />
+        {showWorkspaceTools ? (
+          <OpenAppMenu
+            path={resolvedWorktreePath}
+            openTargets={openTargets}
+            selectedOpenAppId={selectedOpenAppId}
+            onSelectOpenAppId={onSelectOpenAppId}
+            iconById={openAppIconById}
+          />
+        ) : null}
         {showTerminalButton && (
           <button
             type="button"
             className={`ghost main-header-action${isTerminalOpen ? " is-active" : ""}`}
             onClick={onToggleTerminal}
             data-tauri-drag-region="false"
-            aria-label="Toggle terminal panel"
-            title="Terminal"
+            aria-label={t("mainHeader.toggleTerminalPanel")}
+            title={t("mainHeader.terminal")}
           >
             <Terminal size={14} aria-hidden />
           </button>
@@ -563,8 +570,8 @@ export function MainHeader({
           onClick={handleCopyClick}
           disabled={!canCopyThread || !onCopyThread}
           data-tauri-drag-region="false"
-          aria-label="Copy thread"
-          title="Copy thread"
+          aria-label={t("mainHeader.copyThread")}
+          title={t("mainHeader.copyThread")}
         >
           <span className="main-header-icon" aria-hidden>
             <Copy className="main-header-icon-copy" size={14} />

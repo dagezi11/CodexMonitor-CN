@@ -6,7 +6,7 @@ import type {
   WorkspaceInfo,
 } from "../../../types";
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { FolderOpen } from "lucide-react";
 import Copy from "lucide-react/dist/esm/icons/copy";
@@ -34,6 +34,7 @@ import { useDismissibleMenu } from "../hooks/useDismissibleMenu";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 import { getUsageLabels } from "../utils/usageLabels";
 import { formatRelativeTimeShort } from "../../../utils/time";
+import { useAppTranslation } from "../../i18n/i18n";
 
 const COLLAPSED_GROUPS_STORAGE_KEY = "codexmonitor.collapsedGroups";
 const UNGROUPED_COLLAPSE_ID = "__ungrouped__";
@@ -63,6 +64,7 @@ type SidebarProps = {
   threadListCursorByWorkspace: Record<string, string | null>;
   threadListSortKey: ThreadListSortKey;
   onSetThreadListSortKey: (sortKey: ThreadListSortKey) => void;
+  onRefreshAllThreads: () => void;
   activeWorkspaceId: string | null;
   activeThreadId: string | null;
   accountRateLimits: RateLimitSnapshot | null;
@@ -103,7 +105,7 @@ type SidebarProps = {
   onWorkspaceDrop: (event: React.DragEvent<HTMLElement>) => void;
 };
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   workspaces,
   groupedWorkspaces,
   hasWorkspaceGroups,
@@ -118,6 +120,7 @@ export function Sidebar({
   threadListCursorByWorkspace,
   threadListSortKey,
   onSetThreadListSortKey,
+  onRefreshAllThreads,
   activeWorkspaceId,
   activeThreadId,
   accountRateLimits,
@@ -157,6 +160,7 @@ export function Sidebar({
   onWorkspaceDragLeave,
   onWorkspaceDrop,
 }: SidebarProps) {
+  const { t } = useAppTranslation("shell");
   const [expandedWorkspaces, setExpandedWorkspaces] = useState(
     new Set<string>(),
   );
@@ -242,12 +246,16 @@ export function Sidebar({
   const accountButtonLabel = accountEmail
     ? accountEmail
     : accountInfo?.type === "apikey"
-      ? "API key"
-      : "Sign in to Codex";
-  const accountActionLabel = accountEmail ? "Switch account" : "Sign in";
+      ? t("account.apiKey")
+      : t("account.signInToCodex");
+  const accountActionLabel = accountEmail ? t("account.switchAccount") : t("account.signIn");
   const showAccountSwitcher = Boolean(activeWorkspaceId);
   const accountSwitchDisabled = accountSwitching || !activeWorkspaceId;
   const accountCancelDisabled = !accountSwitching || !activeWorkspaceId;
+  const refreshDisabled = workspaces.length === 0 || workspaces.every((workspace) => !workspace.connected);
+  const refreshInProgress = workspaces.some(
+    (workspace) => threadListLoadingByWorkspace[workspace.id] ?? false,
+  );
 
   const pinnedThreadRows = useMemo(() => {
     type ThreadRow = { thread: ThreadSummary; depth: number };
@@ -415,6 +423,8 @@ export function Sidebar({
         isSearchOpen={isSearchOpen}
         threadListSortKey={threadListSortKey}
         onSetThreadListSortKey={onSetThreadListSortKey}
+        onRefreshAllThreads={onRefreshAllThreads}
+        refreshDisabled={refreshDisabled || refreshInProgress}
       />
       <div className={`sidebar-search${isSearchOpen ? " is-open" : ""}`}>
         {isSearchOpen && (
@@ -422,8 +432,8 @@ export function Sidebar({
             className="sidebar-search-input"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search projects"
-            aria-label="Search projects"
+            placeholder={t("sidebar.searchProjects")}
+            aria-label={t("sidebar.searchProjects")}
             data-tauri-drag-region="false"
             autoFocus
           />
@@ -433,7 +443,7 @@ export function Sidebar({
             type="button"
             className="sidebar-search-clear"
             onClick={() => setSearchQuery("")}
-            aria-label="Clear search"
+            aria-label={t("sidebar.clearSearch")}
             data-tauri-drag-region="false"
           >
             <X size={12} aria-hidden />
@@ -468,7 +478,7 @@ export function Sidebar({
           {pinnedThreadRows.length > 0 && (
             <div className="pinned-section">
               <div className="workspace-group-header">
-                <div className="workspace-group-label">Pinned</div>
+                <div className="workspace-group-label">{t("sidebar.pinned")}</div>
               </div>
               <PinnedThreadList
                 rows={pinnedThreadRows}
@@ -568,7 +578,7 @@ export function Sidebar({
                               }}
                               icon={<Plus aria-hidden />}
                             >
-                              New agent
+                              {t("sidebar.newAgent")}
                             </PopoverMenuItem>
                             <PopoverMenuItem
                               className="workspace-add-option"
@@ -579,7 +589,7 @@ export function Sidebar({
                               }}
                               icon={<GitBranch aria-hidden />}
                             >
-                              New worktree agent
+                              {t("sidebar.newWorktreeAgent")}
                             </PopoverMenuItem>
                             <PopoverMenuItem
                               className="workspace-add-option"
@@ -590,7 +600,7 @@ export function Sidebar({
                               }}
                               icon={<Copy aria-hidden />}
                             >
-                              New clone agent
+                              {t("sidebar.newCloneAgent")}
                             </PopoverMenuItem>
                           </PopoverSurface>,
                           document.body,
@@ -611,7 +621,7 @@ export function Sidebar({
                           }}
                         >
                           <span className={`thread-status ${draftStatusClass}`} aria-hidden />
-                          <span className="thread-name">New Agent</span>
+                          <span className="thread-name">{t("sidebar.newAgent")}</span>
                         </div>
                       )}
                       {worktrees.length > 0 && (
@@ -670,8 +680,8 @@ export function Sidebar({
           {!filteredGroupedWorkspaces.length && (
             <div className="empty">
               {isSearchActive
-                ? "No projects match your search."
-                : "Add a workspace to start."}
+                ? t("sidebar.noProjectsMatchSearch")
+                : t("sidebar.addWorkspaceToStart")}
             </div>
           )}
         </div>
@@ -699,4 +709,6 @@ export function Sidebar({
       />
     </aside>
   );
-}
+});
+
+Sidebar.displayName = "Sidebar";
